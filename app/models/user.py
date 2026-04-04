@@ -9,4 +9,4 @@ class User(BaseModel):
     id = AutoField()
     username = CharField(unique=True)
     email = CharField(unique=True)
-    created_at = DateTimeField(default=datetime.now())
+    created_at = DateTimeField(default=datetime.now)
