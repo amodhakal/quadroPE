@@ -253,7 +253,7 @@ query = (Product
   - Confirm `.env` values match your local setup (`DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_HOST`, `DATABASE_PORT`).
   - Confirm `DATABASE_URL` points to `hackathon_db`.
 
-- **Health check doesn't return `{\"status\":\"ok\"}`**
+- **Health check doesn't return `{"status":"ok"}`**
   - Make sure the app is still running in the terminal where you started `uv run run.py`.
   - Double-check you are visiting `http://localhost:5000/health`.
   - If port `5000` is already used by another app, stop that process and re-run.
