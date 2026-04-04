@@ -27,6 +27,7 @@ def generate_short_code(length=6):
 
 def format_url(url):
     data = model_to_dict(url, recurse=False)
+    data["user_id"] = data.pop("user")
     return data
 
 

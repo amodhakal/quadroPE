@@ -12,6 +12,8 @@ events_bp = Blueprint("events", __name__)
 
 def format_event(event):
     d = model_to_dict(event, recurse=False)
+    d["url_id"] = d.pop("url")
+    d["user_id"] = d.pop("user")
     try:
         d["details"] = json.loads(d["details"])
     except (json.JSONDecodeError, TypeError):
