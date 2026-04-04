@@ -37,7 +37,7 @@ def list_users():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
 
-    total = User.count()
+    total = User.select().count()
     offset = (page - 1) * per_page
     users = User.select().limit(per_page).offset(offset)
 

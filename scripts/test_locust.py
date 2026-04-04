@@ -34,7 +34,8 @@ class URLShortenerUser(HttpUser):
                 except Exception:
                     response.failure("Invalid JSON response")
             else:
-                response.failure(f"Failed to create user: {response.status_code}")
+                response.failure(
+                    f"Failed to create user: {response.status_code}")
 
     def _create_url(self):
         if not self.user_id:
@@ -56,7 +57,8 @@ class URLShortenerUser(HttpUser):
                 except Exception:
                     response.failure("Invalid JSON response")
             else:
-                response.failure(f"Failed to create URL: {response.status_code}")
+                response.failure(
+                    f"Failed to create URL: {response.status_code}")
 
     @staticmethod
     def _random_string(length=8):
@@ -75,7 +77,8 @@ class URLShortenerUser(HttpUser):
                 except Exception:
                     response.failure("Invalid JSON response")
             else:
-                response.failure(f"Health check failed: {response.status_code}")
+                response.failure(
+                    f"Health check failed: {response.status_code}")
 
     @task(5)
     def list_users(self):
@@ -89,7 +92,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Failed to list users: {response.status_code}")
+                response.failure(
+                    f"Failed to list users: {response.status_code}")
 
     @task(4)
     def get_user_by_id(self):
@@ -120,7 +124,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Failed to update user: {response.status_code}")
+                response.failure(
+                    f"Failed to update user: {response.status_code}")
 
     @task(6)
     def list_urls(self):
@@ -135,7 +140,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Failed to list URLs: {response.status_code}")
+                response.failure(
+                    f"Failed to list URLs: {response.status_code}")
 
     @task(5)
     def get_url_by_id(self):
@@ -169,7 +175,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Failed to update URL: {response.status_code}")
+                response.failure(
+                    f"Failed to update URL: {response.status_code}")
 
     @task(2)
     def list_events(self):
@@ -180,7 +187,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 200:
                 response.success()
             else:
-                response.failure(f"Failed to list events: {response.status_code}")
+                response.failure(
+                    f"Failed to list events: {response.status_code}")
 
     @task(1)
     def create_user_new(self):
@@ -195,7 +203,8 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 201:
                 response.success()
             else:
-                response.failure(f"Failed to create user: {response.status_code}")
+                response.failure(
+                    f"Failed to create user: {response.status_code}")
 
     @task(2)
     def create_url_new(self):
@@ -214,32 +223,5 @@ class URLShortenerUser(HttpUser):
             if response.status_code == 201:
                 response.success()
             else:
-                response.failure(f"Failed to create URL: {response.status_code}")
-
-
-class BulkImportUser(HttpUser):
-    wait_time = between(5, 10)
-    weight = 1
-
-    @task
-    def bulk_import_users(self):
-        csv_content = "username,email\n"
-        for i in range(10):
-            username = f"bulk_{self._random_string(8)}"
-            csv_content += f"{username},{username}@bulktest.io\n"
-
-        files = {"file": ("users.csv", csv_content, "text/csv")}
-        with self.client.post(
-            "/users/bulk",
-            files=files,
-            name="/users/bulk [import]",
-            catch_response=True,
-        ) as response:
-            if response.status_code in (200, 201):
-                response.success()
-            else:
-                response.failure(f"Bulk import failed: {response.status_code}")
-
-    @staticmethod
-    def _random_string(length=8):
-        return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+                response.failure(
+                    f"Failed to create URL: {response.status_code}")
