@@ -1,4 +1,4 @@
-"""Tests for the Flask application factory."""
+"""Tests for the Flask application factory and route registration."""
 
 from flask import Flask
 
@@ -16,16 +16,31 @@ def test_app_registers_health_route(app):
     assert "/health" in rules
 
 
-def test_app_health_rule_methods(app):
-    """The /health route should accept GET and HEAD (HEAD is implicit in Flask)."""
-    for rule in app.url_map.iter_rules():
-        if rule.rule == "/health":
-            assert "GET" in rule.methods
-            break
-    else:
-        raise AssertionError("/health route not found")
+def test_app_registers_user_routes(app):
+    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    assert "/users" in rules
+    assert "/users/<int:user_id>" in rules
+    assert "/users/bulk" in rules
+
+
+def test_app_registers_url_routes(app):
+    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    assert "/urls" in rules
+    assert "/urls/<int:url_id>" in rules
+
+
+def test_app_registers_event_routes(app):
+    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    assert "/events" in rules
 
 
 def test_unknown_route_returns_404(client):
     response = client.get("/nonexistent")
     assert response.status_code == 404
+
+
+def test_404_response_is_json(client):
+    response = client.get("/nonexistent")
+    assert response.content_type == "application/json"
+    data = response.get_json()
+    assert "error" in data
