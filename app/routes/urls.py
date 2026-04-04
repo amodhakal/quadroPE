@@ -1,7 +1,7 @@
 import random
 import string
 
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint, abort, current_app, jsonify, request
 from playhouse.shortcuts import model_to_dict
 
 from app.models.url import Url
@@ -19,16 +19,17 @@ def generate_short_code(length=6):
 
 
 def format_url(url):
-    d = model_to_dict(url)
-    d["user_id"] = d.pop("user")
-    return d
+    data = model_to_dict(url)
+    data["user_id"] = data.pop("user")
+    return data
 
 
 @urls_bp.route("/urls", methods=["POST"])
 def create_url():
     data = request.get_json(silent=True)
+
     if not data:
-        print("400: Invalid JSON")
+        current_app.logger.warning("Invalid JSON received for create_url")
         abort(400, description="Invalid JSON")
 
     user_id = data.get("user_id")
@@ -36,19 +37,21 @@ def create_url():
     title = data.get("title")
 
     if not user_id or not isinstance(user_id, int):
-        print("400: user_id must be an integer")
+        current_app.logger.warning("user_id must be an integer")
         abort(400, description="user_id must be an integer")
+
     if not original_url or not isinstance(original_url, str):
-        print("400: original_url must be a string")
+        current_app.logger.warning("original_url must be a string")
         abort(400, description="original_url must be a string")
+
     if not title or not isinstance(title, str):
-        print("400: title must be a string")
+        current_app.logger.warning("title must be a string")
         abort(400, description="title must be a string")
 
     try:
         User.get_by_id(user_id)
     except User.DoesNotExist:
-        print("400: User not found")
+        current_app.logger.warning("User not found")
         abort(400, description="User not found")
 
     short_code = generate_short_code()
@@ -71,6 +74,8 @@ def create_url():
         },
     )
 
+    current_app.logger.info(f"Short URL created with id={url.id} short_code={short_code}")
+
     return jsonify(format_url(url)), 201
 
 
@@ -80,17 +85,24 @@ def list_urls():
 
     if "id" in request.args:
         query = query.where(Url.id == request.args.get("id", type=int))
+
     if "user_id" in request.args:
         query = query.where(Url.user_id == request.args.get("user_id", type=int))
+
     if "short_code" in request.args:
         query = query.where(Url.short_code == request.args["short_code"])
+
     if "original_url" in request.args:
         query = query.where(Url.original_url == request.args["original_url"])
+
     if "is_active" in request.args:
         val = request.args["is_active"].lower()
         query = query.where(Url.is_active == (val == "true"))
 
-    return jsonify([format_url(u) for u in query])
+    urls = [format_url(u) for u in query]
+    current_app.logger.info(f"Listed {len(urls)} URL records")
+
+    return jsonify(urls)
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -98,7 +110,10 @@ def get_url(url_id):
     try:
         url = Url.get_by_id(url_id)
     except Url.DoesNotExist:
+        current_app.logger.warning(f"URL not found for id={url_id}")
         abort(404)
+
+    current_app.logger.info(f"Fetched URL id={url_id}")
     return jsonify(format_url(url))
 
 
@@ -107,11 +122,13 @@ def update_url(url_id):
     try:
         url = Url.get_by_id(url_id)
     except Url.DoesNotExist:
+        current_app.logger.warning(f"URL not found for update id={url_id}")
         abort(404)
 
     data = request.get_json(silent=True)
+
     if not data:
-        print("400: Invalid JSON")
+        current_app.logger.warning("Invalid JSON received for update_url")
         abort(400, description="Invalid JSON")
 
     if "title" in data:
@@ -125,6 +142,7 @@ def update_url(url_id):
                 "new_value": data["title"],
             },
         )
+        current_app.logger.info(f"Updated title for url id={url.id}")
 
     if "is_active" in data:
         url.is_active = data["is_active"]
@@ -137,6 +155,7 @@ def update_url(url_id):
                 "new_value": data["is_active"],
             },
         )
+        current_app.logger.info(f"Updated is_active for url id={url.id}")
 
     url.save()
     return jsonify(format_url(url))
