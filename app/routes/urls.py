@@ -200,14 +200,13 @@ def update_url(url_id):
 def delete_url(url_id):
     try:
         url = Url.get_by_id(url_id)
+        url.delete_instance(recursive=True)
+        delete_url(url_id)
+        current_app.logger.info(f"Deleted URL id={url_id}")
     except Url.DoesNotExist:
         current_app.logger.warning(f"URL not found for delete id={url_id}")
-        abort(404)
 
-    url.delete_instance(recursive=True)
-    delete_url(url_id)
-    current_app.logger.info(f"Deleted URL id={url_id}")
-    return jsonify({"message": "URL deleted", "id": url_id}), 200
+    return jsonify({}), 200
 
 
 @urls_bp.route("/urls/<short_code>/redirect", methods=["GET"])

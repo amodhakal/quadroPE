@@ -121,9 +121,10 @@ def update_user(user_id):
 def delete_user(user_id):
     try:
         user = User.get_by_id(user_id)
+        user.delete_instance()
+        delete_user(user_id)
+        current_app.logger.info(f"Deleted user id={user_id}")
     except User.DoesNotExist:
-        abort(404)
+        current_app.logger.warning(f"User not found for delete id={user_id}")
 
-    user.delete_instance()
-    delete_user(user_id)
-    return jsonify({"message": "User deleted", "id": user_id}), 200
+    return jsonify({}), 200
