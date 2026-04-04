@@ -12,31 +12,20 @@ users_bp = Blueprint("users", __name__)
 
 DATA_DIR = os.path.join("./data")
 
+
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
-    data = request.get_json()
-    if not data:
-        print("400: Missing JSON body")
-        abort(400, description="Missing JSON body")
-
-    if "file" not in data:
+    if "file" not in request.files:
         print("400: Missing 'file' field")
         abort(400, description="Missing 'file' field")
 
-    if "row_count" not in data:
-        print("400: Missing 'row_count' field")
-        abort(400, description="Missing 'row_count' field")
+    file = request.files["file"]
+    if not file.filename or not file.filename.endswith(".csv"):
+        print("400: Invalid file type")
+        abort(400, description="Invalid file type, expected .csv")
 
-    file_path = os.path.join(DATA_DIR, data["file"])
-    row_count = data.get("row_count")
-
-    if not os.path.exists(file_path):
-        print(f"400: File not found: {file_path}")
-        abort(400, description=f"File not found: {data['file']}")
-
-    with open(file_path, newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)[:row_count]
+    reader = csv.DictReader(file.stream.read().decode("utf-8").splitlines())
+    rows = list(reader)
 
     db.drop_tables([User], cascade=True)
     db.create_tables([User])
@@ -45,7 +34,7 @@ def bulk_import_users():
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
 
-    return "OK"
+    return jsonify({"imported": len(rows)}), 200
 
 
 @users_bp.route("/users", methods=["GET"])
