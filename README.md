@@ -25,6 +25,7 @@ You need to work with around the seed files that you can find in [MLH PE Hackath
 
   For other methods see the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/).
 - **PostgreSQL running locally** (Docker or a local install is fine)
+- **Redis running locally** (or via Docker)
 - **Git** installed so you can clone and push your project
 
 ## uv Basics
@@ -67,7 +68,12 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
     CREATE DATABASE hackathon_db;
     ```
 
-4. **Configure your environment file (`.env`)**
+4. **Make sure Redis is running**
+
+   - If you use Docker, start Redis with your compose stack.
+   - If you run services locally, make sure Redis is available at `localhost:6379`.
+
+5. **Configure your environment file (`.env`)**
 
     Create a `.env` file from the template (`.env` is gitignored and should **not** be committed):
 
@@ -83,9 +89,10 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
     Copy-Item .env.example .env
     ```
 
-    Then open `.env` and update the values if your Postgres username, password, or port differ from the defaults.
+    Then open `.env` and update values as needed.
+    - For local (non-Docker) Redis, set `REDIS_URL=redis://localhost:6379/0`.
 
-5. **Run the app**
+6. **Run the app**
 
     ```bash
     uv run run.py
@@ -93,7 +100,7 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
 
     You should see Flask start on `http://localhost:5000`.
 
-6. **Health check (confirm it works)**
+7. **Health check (confirm it works)**
 
     ```bash
     curl http://localhost:5000/health
@@ -147,7 +154,7 @@ class Product(BaseModel):
 from app.models.product import Product
 ```
 
-2. Create the table (run once in a Python shell or a setup script):
+1. Create the table (run once in a Python shell or a setup script):
 
 ```python
 from app.database import db
@@ -253,6 +260,11 @@ query = (Product
   - Confirm PostgreSQL is running.
   - Confirm `.env` values match your local setup (`DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_HOST`, `DATABASE_PORT`).
   - Confirm `DATABASE_URL` points to `hackathon_db`.
+
+- **Redis errors or cache connection warnings**
+  - Confirm Redis is running on the host in `REDIS_URL`.
+  - For local development without Docker, use `REDIS_URL=redis://localhost:6379/0`.
+  - If using Docker Compose, `REDIS_URL=redis://redis:6379/0` is expected.
 
 - **Health check doesn't return `{\"status\":\"ok\"}`**
   - Make sure the app is still running in the terminal where you started `uv run run.py`.

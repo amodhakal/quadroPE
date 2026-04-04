@@ -20,6 +20,7 @@ The app can run with different DB targets depending on context. A practical prof
 
 - `DATABASE_NAME=hackathon_db`
 - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/hackathon_db`
+- `REDIS_URL=redis://localhost:6379/0`
 
 ## API and operations references
 
