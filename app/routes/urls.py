@@ -11,6 +11,7 @@ from flask import (
 )
 from playhouse.shortcuts import model_to_dict
 
+from app.cache import delete_url, get_url, set_url
 from app.models.url import Url
 from app.models.user import User
 from app.utils.events import create_event
@@ -86,7 +87,9 @@ def create_url():
         f"Short URL created with id={url.id} short_code={short_code}"
     )
 
-    return jsonify(format_url(url)), 201
+    data = format_url(url)
+    set_url(url.id, data)
+    return jsonify(data), 201
 
 
 @urls_bp.route("/urls", methods=["GET"])
@@ -126,7 +129,10 @@ def list_urls():
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
-def get_url(url_id):
+def get_url_cached(url_id):
+    cached = get_url(url_id)
+    if cached is not None:
+        return jsonify(cached)
     try:
         url = Url.get_by_id(url_id)
     except Url.DoesNotExist:
@@ -138,8 +144,10 @@ def get_url(url_id):
         )
         abort(500, description="Internal server error")
 
+    data = format_url(url)
+    set_url(url_id, data)
     current_app.logger.info(f"Fetched URL id={url_id}")
-    return jsonify(format_url(url))
+    return jsonify(data)
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["PUT"])
@@ -183,7 +191,9 @@ def update_url(url_id):
         current_app.logger.info(f"Updated is_active for url id={url.id}")
 
     url.save()
-    return jsonify(format_url(url))
+    data = format_url(url)
+    set_url(url_id, data)
+    return jsonify(data)
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])
@@ -195,6 +205,7 @@ def delete_url(url_id):
         abort(404)
 
     url.delete_instance(recursive=True)
+    delete_url(url_id)
     current_app.logger.info(f"Deleted URL id={url_id}")
     return jsonify({"message": "URL deleted", "id": url_id}), 200
 
