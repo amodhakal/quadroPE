@@ -40,10 +40,10 @@ def bulk_import_users():
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
 
-    max_id = db.execute_sql("SELECT MAX(id) FROM user").fetchone()[0]
+    max_id = db.execute_sql('SELECT MAX(id) FROM "user"').fetchone()[0]
     if max_id:
         db.execute_sql(
-            f"SELECT setval(pg_get_serial_sequence('user', 'id'), {max_id})"
+            f"SELECT setval(pg_get_serial_sequence('\"user\"', 'id'), {max_id})"
         )
 
     clear_all_users()
