@@ -5,6 +5,7 @@ from playhouse.shortcuts import model_to_dict
 
 from app.models.event import Event
 
+
 events_bp = Blueprint("events", __name__)
 
 
@@ -12,13 +13,27 @@ events_bp = Blueprint("events", __name__)
 def list_events():
     events = Event.select()
     result = []
-    for e in events:
-        d = model_to_dict(e)
-        d["url_id"] = d.pop("url")
-        d["user_id"] = d.pop("user")
+
+    for event in events:
+        data = model_to_dict(event, recurse=True)
+
+        user_obj = data.pop("user", None)
+        if isinstance(user_obj, dict):
+            data["user_id"] = user_obj
+        else:
+            data["user_id"] = {"id": user_obj}
+
+        url_obj = data.pop("url", None)
+        if isinstance(url_obj, dict):
+            data["url_id"] = url_obj.get("id")
+        else:
+            data["url_id"] = url_obj
+
         try:
-            d["details"] = json.loads(d["details"])
+            data["details"] = json.loads(data["details"]) if data.get("details") else {}
         except (json.JSONDecodeError, TypeError):
-            d["details"] = {}
-        result.append(d)
+            data["details"] = {}
+
+        result.append(data)
+
     return jsonify(result)
