@@ -36,9 +36,6 @@ def bulk_import_users():
     reader = csv.DictReader(file.stream.read().decode("utf-8").splitlines())
     rows = list(reader)
 
-    db.drop_tables([User], cascade=True)
-    db.create_tables([User])
-
     with db.atomic():
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
