@@ -30,7 +30,7 @@ def bulk_import_users():
         abort(400, description="Invalid file type, expected .csv")
 
     reader = csv.DictReader(file.stream.read().decode("utf-8").splitlines())
-    rows = [{k: v for k, v in row.items() if k != "id"} for row in reader]
+    rows = list(reader)
 
     db.drop_tables([User], cascade=True)
     db.create_tables([User])
@@ -42,7 +42,6 @@ def bulk_import_users():
     clear_all_users()
 
     return jsonify({"imported": len(rows)}), 200
-
 
 @users_bp.route("/users", methods=["GET"])
 def list_users():
@@ -71,17 +70,11 @@ def list_users():
             abort(400, description="per_page must be a positive integer")
         per_page = body["per_page"]
 
-    total = User.select().count()
     offset = (page - 1) * per_page
     users = User.select().limit(per_page).offset(offset)
 
-    return jsonify(
-        {
-            "kind": "list",
-            "sample": [model_to_dict(u) for u in users],
-            "total_items": total,
-        }
-    )
+    # Return plain array as per spec
+    return jsonify([model_to_dict(u) for u in users])
 
 
 @users_bp.route("/users/<int:user_id>", methods=["GET"])
