@@ -125,9 +125,10 @@ def create_app():
         _, exc, _ = sys.exc_info()
         return jsonify({"error": str(exc)}), 500
 
-    # Start Discord alert monitor in background
-    from app.utils.alerts import start_alerting
-    app_url = os.environ.get("APP_URL", "http://127.0.0.1:5000")
-    start_alerting(app_url=app_url, interval=60)
+    # Only start the alert monitor when not running tests
+    if not app.config.get("TESTING", False):
+        from app.utils.alerts import start_alerting
+        app_url = os.environ.get("APP_URL", "http://127.0.0.1:5000")
+        start_alerting(app_url=app_url, interval=60)
 
     return app
