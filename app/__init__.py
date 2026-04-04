@@ -91,6 +91,6 @@ def create_app():
     @app.errorhandler(500)
     def internal_server_error(error):
         app.logger.exception("Internal server error")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": str(error)}), 500
 
     return app

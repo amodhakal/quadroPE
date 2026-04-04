@@ -20,8 +20,7 @@ def generate_short_code(length=6):
 
 def format_url(url):
     data = model_to_dict(url)
-    user_data = data.pop("user")
-    data["user_id"] = {"id": user_data}
+    data["user_id"] = data.pop("user")
     return data
 
 
@@ -109,7 +108,7 @@ def list_urls():
     urls = list(query.limit(per_page).offset(offset))
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
-    return jsonify([format_url(u) for u in urls])
+    return jsonify({"kind": "list", "items": [format_url(u) for u in urls]})
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -184,7 +183,7 @@ def delete_url(url_id):
     return jsonify({"message": "URL deleted", "id": url_id}), 200
 
 
-@urls_bp.route("/<short_code>", methods=["GET"])
+@urls_bp.route("/r/<short_code>", methods=["GET"])
 def redirect_short_code(short_code):
     try:
         url = Url.select().where(Url.short_code == short_code).get()
