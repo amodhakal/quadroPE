@@ -1,6 +1,6 @@
 # MLH PE Hackathon — Flask + Peewee + PostgreSQL Template
 
-[New info here](/README_NEW.md)
+[New info here](/docs/extended-guide.md)
 
 A minimal hackathon starter template. You get the scaffolding and database wiring — you build the models, routes, and CSV loading logic.
 
@@ -32,7 +32,7 @@ You need to work with around the seed files that you can find in [MLH PE Hackath
 `uv` manages your Python version, virtual environment, and dependencies automatically — no manual `python -m venv` needed.
 
 | Command | What it does |
-|---------|--------------|
+| -------- | ------------ |
 | `uv sync` | Install all dependencies (creates `.venv` automatically) |
 | `uv run <script>` | Run a script using the project's virtual environment |
 | `uv add <package>` | Add a new dependency |
@@ -46,7 +46,7 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
 
     ```bash
     git clone <repo-url>
-    cd <repo-folder>
+    cd PE-Hackathon-Template-2026
     ```
 
 2. **Install dependencies**
@@ -106,7 +106,7 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
 
 ## Project Structure
 
-```
+```text
 mlh-pe-hackathon/
 ├── app/
 │   ├── __init__.py          # App factory (create_app)
@@ -174,7 +174,7 @@ def list_products():
     return jsonify([model_to_dict(p) for p in products])
 ```
 
-2. Register it in `app/routes/__init__.py`:
+1. Register it in `app/routes/__init__.py`:
 
 ```python
 def register_routes(app):
@@ -253,7 +253,30 @@ query = (Product
   - Confirm `.env` values match your local setup (`DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_HOST`, `DATABASE_PORT`).
   - Confirm `DATABASE_URL` points to `hackathon_db`.
 
-- **Health check doesn't return `{"status":"ok"}`**
+- **Health check doesn't return `{\"status\":\"ok\"}`**
   - Make sure the app is still running in the terminal where you started `uv run run.py`.
   - Double-check you are visiting `http://localhost:5000/health`.
   - If port `5000` is already used by another app, stop that process and re-run.
+
+## Docs map
+
+- `docs/API.md` — endpoint behavior, request/response examples, and evaluation notes.
+- `docs/runbook.md` — operational checks, common failures, and incident escalation flow.
+- `docs/failure-manual.md` — postmortem template for documenting incidents.
+- `docs/performance-bottleneck-report.md` — performance test template and bottleneck tracking.
+- `docs/extended-guide.md` — extended project notes (profiles, testing, and workflow quick refs).
+
+## Create a pull request (after pushing your branch)
+
+1. Push your branch to GitHub:
+
+    ```bash
+    git push --set-upstream origin <your-branch-name>
+    ```
+
+1. Open GitHub and create a PR from your branch into `main`.
+1. In the PR description, include:
+    - what changed,
+    - how you tested it,
+    - any known limitations.
+1. Request review from your teammate(s), then merge after checks pass.
