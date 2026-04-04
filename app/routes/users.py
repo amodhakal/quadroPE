@@ -39,12 +39,26 @@ def bulk_import_users():
 
 @users_bp.route("/users", methods=["GET"])
 def list_users():
-    offset = request.args.get("offset", 0, type=int)
-    size = request.args.get("size", 20, type=int)
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
 
-    users = User.select().limit(size).offset(offset)
+    body = request.get_json(silent=True) or {}
+    if "page" in body:
+        page = body["page"]
+    if "per_page" in body:
+        per_page = body["per_page"]
 
-    return jsonify([model_to_dict(u) for u in users])
+    total = User.select().count()
+    offset = (page - 1) * per_page
+    users = User.select().limit(per_page).offset(offset)
+
+    return jsonify(
+        {
+            "kind": "list",
+            "sample": [model_to_dict(u) for u in users],
+            "total_items": total,
+        }
+    )
 
 
 @users_bp.route("/users/<int:user_id>", methods=["GET"])

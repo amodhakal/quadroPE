@@ -28,7 +28,7 @@ def generate_short_code(length=6):
 
 def format_url(url):
     data = model_to_dict(url, recurse=False)
-    data["user_id"] = {"id": data.pop("user")}
+    data["user_id"] = data.pop("user")
     return data
 
 
@@ -94,7 +94,11 @@ def list_urls():
     offset = request.args.get("offset", 0, type=int)
     size = request.args.get("size", 20, type=int)
 
-    query = Url.select()
+    body = request.get_json(silent=True) or {}
+    if "user_id" in body:
+        query = Url.select().where(Url.user_id == body["user_id"])
+    else:
+        query = Url.select()
 
     if "id" in request.args:
         query = query.where(Url.id == request.args.get("id", type=int))
@@ -112,10 +116,13 @@ def list_urls():
         val = request.args["is_active"].lower()
         query = query.where(Url.is_active == (val == "true"))
 
+    total = query.count()
     urls = list(query.limit(size).offset(offset))
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
-    return jsonify([format_url(url) for url in urls])
+    return jsonify(
+        {"kind": "list", "sample": [format_url(u) for u in urls], "total_items": total}
+    )
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -126,7 +133,9 @@ def get_url(url_id):
         current_app.logger.warning(f"URL not found for id={url_id}")
         abort(404)
     except Exception as error:
-        current_app.logger.exception(f"Unexpected error fetching URL id={url_id}: {error}")
+        current_app.logger.exception(
+            f"Unexpected error fetching URL id={url_id}: {error}"
+        )
         abort(500, description="Internal server error")
 
     current_app.logger.info(f"Fetched URL id={url_id}")
