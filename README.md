@@ -174,7 +174,7 @@ def list_products():
     return jsonify([model_to_dict(p) for p in products])
 ```
 
-1. Register it in `app/routes/__init__.py`:
+2. Register it in `app/routes/__init__.py`:
 
 ```python
 def register_routes(app):
