@@ -25,7 +25,7 @@ def bulk_import_users():
         abort(400, description="Invalid file type, expected .csv")
 
     reader = csv.DictReader(file.stream.read().decode("utf-8").splitlines())
-    rows = list(reader)
+    rows = [{k: v for k, v in row.items() if k != "id"} for row in reader]
 
     db.drop_tables([User], cascade=True)
     db.create_tables([User])
@@ -91,3 +91,14 @@ def update_user(user_id):
 
     user.save()
     return jsonify(model_to_dict(user))
+
+
+@users_bp.route("/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    try:
+        user = User.get_by_id(user_id)
+    except User.DoesNotExist:
+        abort(404)
+
+    user.delete_instance()
+    return jsonify({"message": "User deleted", "id": user_id}), 200

@@ -13,8 +13,8 @@ class Url(BaseModel):
     original_url = CharField()
     title = CharField()
     is_active = BooleanField()
-    created_at = DateTimeField(default=datetime.now())
-    updated_at = DateTimeField(default=datetime.now())
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
 
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()

@@ -12,5 +12,5 @@ class Event(BaseModel):
     url = ForeignKeyField(Url, backref="events")
     user = ForeignKeyField(User, backref="events")
     event_type = CharField()
-    timestamp = DateTimeField(default=datetime.now())
+    timestamp = DateTimeField(default=datetime.now)
     details = TextField()
