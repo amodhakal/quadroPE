@@ -1,6 +1,6 @@
 # MLH PE Hackathon — Flask + Peewee + PostgreSQL Template
 
-[New info here](/README_NEW.md)
+[New info here](/docs/extended-guide.md)
 
 A minimal hackathon starter template. You get the scaffolding and database wiring — you build the models, routes, and CSV loading logic.
 
@@ -14,6 +14,7 @@ You need to work with around the seed files that you can find in [MLH PE Hackath
 
 - **uv** — a fast Python package manager that handles Python versions, virtual environments, and dependencies automatically.
   Install it with:
+
   ```bash
   # macOS / Linux
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -21,46 +22,91 @@ You need to work with around the seed files that you can find in [MLH PE Hackath
   # Windows (PowerShell)
   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
   ```
+
   For other methods see the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/).
-- PostgreSQL running locally (you can use Docker or a local instance)
+- **PostgreSQL running locally** (Docker or a local install is fine)
+- **Git** installed so you can clone and push your project
 
 ## uv Basics
 
 `uv` manages your Python version, virtual environment, and dependencies automatically — no manual `python -m venv` needed.
 
 | Command | What it does |
-|---------|--------------|
+| -------- | ------------ |
 | `uv sync` | Install all dependencies (creates `.venv` automatically) |
 | `uv run <script>` | Run a script using the project's virtual environment |
 | `uv add <package>` | Add a new dependency |
 | `uv remove <package>` | Remove a dependency |
 
-## Quick Start
+## Quick Start (copy/paste friendly)
 
-```bash
-# 1. Clone the repo
-git clone <repo-url> && cd mlh-pe-hackathon
+If this is your first Flask + Postgres app, follow these exact steps in order:
 
-# 2. Install dependencies
-uv sync
+1. **Clone the repository and move into it**
 
-# 3. Create the database
-createdb hackathon_db
+    ```bash
+    git clone <repo-url>
+    cd PE-Hackathon-Template-2026
+    ```
 
-# 4. Configure environment
-cp .env.example .env   # edit if your DB credentials differ
+2. **Install dependencies**
 
-# 5. Run the server
-uv run run.py
+    ```bash
+    uv sync
+    ```
 
-# 6. Verify
-curl http://localhost:5000/health
-# → {"status":"ok"}
-```
+3. **Create the PostgreSQL database**
+
+    ```bash
+    createdb hackathon_db
+    ```
+
+    If `createdb` is not available, open `psql` and run:
+
+    ```sql
+    CREATE DATABASE hackathon_db;
+    ```
+
+4. **Configure your environment file (`.env`)**
+
+    - A `.env` file already exists in this repo. Update it if your Postgres username/password/port are different.
+    - You can also reset it from the template:
+
+    **macOS/Linux**
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    **Windows PowerShell**
+
+    ```powershell
+    Copy-Item .env.example .env
+    ```
+
+5. **Run the app**
+
+    ```bash
+    uv run run.py
+    ```
+
+    You should see Flask start on `http://localhost:5000`.
+
+6. **Health check (confirm it works)**
+
+    ```bash
+    curl http://localhost:5000/health
+    ```
+
+    Expected response:
+
+    ```json
+    {"status":"ok"}
+    ```
 
 ## Project Structure
 
-```
+```text
 mlh-pe-hackathon/
 ├── app/
 │   ├── __init__.py          # App factory (create_app)
@@ -94,13 +140,13 @@ class Product(BaseModel):
     stock = IntegerField()
 ```
 
-2. Import it in `app/models/__init__.py`:
+1. Import it in `app/models/__init__.py`:
 
 ```python
 from app.models.product import Product
 ```
 
-3. Create the table (run once in a Python shell or a setup script):
+1. Create the table (run once in a Python shell or a setup script):
 
 ```python
 from app.database import db
@@ -128,7 +174,7 @@ def list_products():
     return jsonify([model_to_dict(p) for p in products])
 ```
 
-2. Register it in `app/routes/__init__.py`:
+1. Register it in `app/routes/__init__.py`:
 
 ```python
 def register_routes(app):
@@ -192,3 +238,45 @@ query = (Product
 - Wrap bulk inserts in `db.atomic()` for transactional safety and performance.
 - The template uses `teardown_appcontext` for connection cleanup, so connections are closed even when requests fail.
 - Check `.env.example` for all available configuration options.
+
+## Troubleshooting (common setup issues)
+
+- **`uv: command not found`**
+  - Re-open your terminal after installing `uv`, then run `uv --version` to confirm it is available.
+
+- **`createdb: command not found`**
+  - PostgreSQL client tools are not on your PATH yet.
+  - Use `psql` and run `CREATE DATABASE hackathon_db;`, or add PostgreSQL's `bin` directory to your PATH.
+
+- **Database connection errors when starting the app**
+  - Confirm PostgreSQL is running.
+  - Confirm `.env` values match your local setup (`DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_HOST`, `DATABASE_PORT`).
+  - Confirm `DATABASE_URL` points to `hackathon_db`.
+
+- **Health check doesn't return `{\"status\":\"ok\"}`**
+  - Make sure the app is still running in the terminal where you started `uv run run.py`.
+  - Double-check you are visiting `http://localhost:5000/health`.
+  - If port `5000` is already used by another app, stop that process and re-run.
+
+## Docs map
+
+- `docs/API.md` — endpoint behavior, request/response examples, and evaluation notes.
+- `docs/runbook.md` — operational checks, common failures, and incident escalation flow.
+- `docs/failure-manual.md` — postmortem template for documenting incidents.
+- `docs/performance-bottleneck-report.md` — performance test template and bottleneck tracking.
+- `docs/extended-guide.md` — extended project notes (profiles, testing, and workflow quick refs).
+
+## Create a pull request (after pushing your branch)
+
+1. Push your branch to GitHub:
+
+    ```bash
+    git push --set-upstream origin <your-branch-name>
+    ```
+
+1. Open GitHub and create a PR from your branch into `main`.
+1. In the PR description, include:
+    - what changed,
+    - how you tested it,
+    - any known limitations.
+1. Request review from your teammate(s), then merge after checks pass.
