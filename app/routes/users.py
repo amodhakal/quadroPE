@@ -5,6 +5,7 @@ from flask import Blueprint, abort, current_app, jsonify, request
 from peewee import chunked
 from playhouse.shortcuts import model_to_dict
 
+from app.cache import clear_all_users, delete_user, get_user, set_user
 from app.database import db
 from app.models.user import User
 
@@ -34,6 +35,8 @@ def bulk_import_users():
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
 
+    clear_all_users()
+
     return jsonify({"imported": len(rows)}), 200
 
 
@@ -62,12 +65,17 @@ def list_users():
 
 
 @users_bp.route("/users/<int:user_id>", methods=["GET"])
-def get_user(user_id):
+def get_user_cached(user_id):
+    cached = get_user(user_id)
+    if cached is not None:
+        return jsonify(cached)
     try:
         user = User.get_by_id(user_id)
     except User.DoesNotExist:
         abort(404)
-    return jsonify(model_to_dict(user))
+    data = model_to_dict(user)
+    set_user(user_id, data)
+    return jsonify(data)
 
 
 @users_bp.route("/users", methods=["POST"])
@@ -77,8 +85,19 @@ def create_user():
         if not data:
             current_app.logger.warning("Invalid JSON received for create_user")
             abort(400, description="Invalid JSON")
+
+        username = data.get("username")
+        email = data.get("email")
+
+        if not username or not isinstance(username, str) or not username.strip():
+            abort(400, description="username must be a non-empty string")
+        if not email or not isinstance(email, str) or not email.strip():
+            abort(400, description="email must be a non-empty string")
+
         user = User.create(**data)
-        return jsonify(model_to_dict(user)), 201
+        result = model_to_dict(user)
+        set_user(user.id, result)
+        return jsonify(result), 201
     except Exception as e:
         current_app.logger.exception(f"Failed to create user: {e}")
         abort(400, description=str(e))
@@ -102,7 +121,9 @@ def update_user(user_id):
         user.email = data["email"]
 
     user.save()
-    return jsonify(model_to_dict(user))
+    data = model_to_dict(user)
+    set_user(user_id, data)
+    return jsonify(data)
 
 
 @users_bp.route("/users/<int:user_id>", methods=["DELETE"])
@@ -113,4 +134,5 @@ def delete_user(user_id):
         abort(404)
 
     user.delete_instance()
+    delete_user(user_id)
     return jsonify({"message": "User deleted", "id": user_id}), 200

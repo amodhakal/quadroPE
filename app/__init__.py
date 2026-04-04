@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
