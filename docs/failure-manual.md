@@ -1,63 +1,133 @@
-# Failure Manual / Failure Modes
+# Failure Manual — Failure Modes & Recovery
 
-This document describes what failure looks like in quadroPE, how to confirm each failure mode, and how to recover quickly.
+This document catalogs every known failure mode in the system, what the user/operator sees, and how to recover.
 
-## 1. Failure mode catalog
+---
 
-### A) App process unavailable
+## Architecture Overview
 
-- **Symptoms:** `GET /health` times out or returns connection refused.
-- **Where seen first:** Discord "Service Down" alert from the health monitor.
-- **Likely causes:** crashed process, container stopped, startup failure.
-- **Recovery:** restart app process/container, then confirm `GET /health` returns `200` with `{"status":"ok"}`.
+```
+Client → Nginx (port 80) → App ×6 (Gunicorn, port 8000) → PostgreSQL (port 5432)
+                                                         → Redis (port 6379)
+```
 
-### B) Database unavailable or credentials mismatch
+All services run via Docker Compose with `restart: always` to enable automatic recovery.
 
-- **Symptoms:** 500s on data endpoints, errors mentioning `psycopg`/connection refused in logs.
-- **Where seen first:** `/logs` endpoint and application stderr/stdout logs.
-- **Likely causes:** Postgres stopped, wrong `.env` credentials, wrong host/port.
-- **Recovery:** start Postgres, verify `.env` (`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`), retry request.
+---
 
-### C) Invalid client payloads
+## 1. App Container Crash
 
-- **Symptoms:** 400/422 responses with polite JSON error messages.
-- **Where seen first:** API response body and `/logs` warning entries.
-- **Likely causes:** missing required JSON fields, wrong types (for example `user_id` not integer).
-- **Recovery:** correct request schema and retry. No server restart needed.
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | `docker kill <app-container>`, OOM kill, unhandled exception in Gunicorn worker |
+| **Symptom** | Intermittent 502 Bad Gateway from Nginx; remaining 5 replicas continue serving |
+| **Detection** | `docker ps` shows fewer than 6 app containers; `GET /health` still returns 200 via other replicas |
+| **Recovery** | `docker compose up -d` reconciles the desired state and restarts the missing container(s) |
+| **User impact** | Minimal — Nginx load-balances across the surviving replicas. Some in-flight requests may fail with 502. |
+| **Tested** | Yes — killed `app-4` container, confirmed traffic still served, ran `docker compose up -d` to restore |
 
-### D) Health endpoint degraded while app is reachable
+## 2. Nginx (Load Balancer) Crash
 
-- **Symptoms:** app responds on other routes but `/health` returns non-200.
-- **Where seen first:** monitoring check and Discord alert.
-- **Likely causes:** dependency degradation (typically DB reachability).
-- **Recovery:** validate DB connectivity and environment config, then confirm `/health` recovers.
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | `docker kill <nginx-container>`, config error, port conflict |
+| **Symptom** | All traffic on port 80 fails with connection refused |
+| **Detection** | `curl http://localhost/health` returns connection refused |
+| **Recovery** | `docker compose up -d` restarts Nginx |
+| **User impact** | Complete outage on port 80 until Nginx is restored. App containers remain healthy. |
+| **Mitigation** | App containers are still reachable directly on port 8000 if needed for debugging. |
 
-## 2. Incident response checklist
+## 3. PostgreSQL Crash
 
-1. Confirm incident with `GET /health`.
-1. Collect evidence from `GET /logs` and, if available, `GET /metrics`.
-1. Identify whether failure is app-level, DB-level, or request-schema-level.
-1. Apply targeted recovery (restart app, recover DB, rollback bad deploy, or fix request schema).
-1. Verify recovery by re-running failing request and `/health`.
-1. Record timeline and root cause in a new incident note under `docs/`.
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | `docker kill <postgres-container>`, disk full, corrupted WAL |
+| **Symptom** | All data endpoints return 500 Internal Server Error with JSON `{"error": "..."}` |
+| **Detection** | `GET /health` returns 200 (app is alive), but `GET /users` returns 500; logs show `psycopg`/`peewee.OperationalError` |
+| **Recovery** | `docker compose up -d` restarts Postgres. Data persists in the `postgres-data` Docker volume. |
+| **User impact** | All CRUD operations fail. Health endpoint still responds (it doesn't query the DB). |
+| **Mitigation** | Postgres has a health check (`pg_isready`) — app containers wait for it via `depends_on: condition: service_healthy`. |
 
-## 3. Standard incident note format
+## 4. Redis Crash
 
-Create a new file per incident, for example:
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | `docker kill <redis-container>`, memory limit exceeded |
+| **Symptom** | Cache misses; slightly increased latency as all reads hit PostgreSQL directly |
+| **Detection** | `docker ps` shows Redis stopped; app logs may show Redis connection warnings |
+| **Recovery** | `docker compose up -d` restarts Redis. Cache rebuilds on subsequent requests. |
+| **User impact** | Negligible — the app falls through to direct DB queries. No errors returned to users. |
 
-- `docs/incidents/incident-2026-04-04-health-down.md`
+## 5. Invalid Client Input (Bad JSON, Wrong Types, Missing Fields)
 
-Include:
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | Client sends malformed JSON, missing required fields, or wrong types |
+| **Symptom** | Clean JSON error response with 400 or 422 status code |
+| **Detection** | Response body contains `{"error": "<description>"}` — no stack traces exposed |
+| **Recovery** | Client-side fix — correct the request payload |
+| **User impact** | Single request rejected. No server-side impact. |
 
-- Summary
-- Impacted endpoints
-- Timeline (UTC)
-- Root cause
-- Mitigation
-- Prevention actions
+### Specific validation rules:
 
-## 4. Prevention actions backlog
+| Endpoint | Validation | Error |
+|----------|-----------|-------|
+| `POST /users` | `username` and `email` must be non-empty strings | 400: `"username must be a non-empty string"` |
+| `POST /urls` | `user_id` must be an integer | 400: `"user_id must be an integer"` |
+| `POST /urls` | `original_url` and `title` must be non-empty strings | 400: `"original_url must be a string"` |
+| `POST /urls` | `user_id` must reference an existing user | 400: `"User not found"` |
+| `POST /users/bulk` | File must be a `.csv` upload in the `file` field | 400: `"Missing 'file' field"` or `"Invalid file type"` |
+| `PUT /users/<id>` | Body must be valid JSON | 400: `"Invalid JSON"` |
+| Any endpoint | Non-existent resource ID | 404: `{"error": "Not found"}` |
 
-- [ ] Add an automated test for at least one previously observed bad payload case.
-- [ ] Add dashboard chart(s) for health status, request errors, and DB connectivity signals.
-- [ ] Add explicit alert thresholds for sustained 5xx rates and repeated health check failures.
+## 6. Non-Existent Route
+
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | Client requests a URL path that doesn't exist |
+| **Symptom** | 404 response with `{"error": "Not found"}` |
+| **Detection** | Logged as a warning in app logs |
+| **Recovery** | None needed — informational. Client should fix the URL. |
+
+## 7. Inactive Short Code Redirect
+
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | Client attempts to redirect using a short code that has been deactivated (`is_active: false`) |
+| **Symptom** | 404 response |
+| **Detection** | Logged as warning: `"Short code inactive: <code>"` |
+| **Recovery** | Re-activate the URL via `PUT /urls/<id>` with `{"is_active": true}` |
+
+## 8. Full System Outage (All Containers Down)
+
+| Detail | Description |
+|--------|-------------|
+| **Trigger** | `docker compose down`, host machine reboot, Docker daemon crash |
+| **Symptom** | All endpoints unreachable |
+| **Recovery** | `docker compose up -d` — all services start in dependency order (Postgres → Redis → App → Nginx) |
+| **Data impact** | None — Postgres data persists in the `postgres-data` volume. Redis cache is rebuilt on demand. |
+
+---
+
+## Incident Response Checklist
+
+1. **Confirm** — `curl http://localhost/health` — is the app reachable?
+2. **Identify scope** — check `docker ps` to see which containers are running
+3. **Collect evidence** — `GET /logs` for recent app logs, `docker logs <container>` for container-level logs
+4. **Classify** — is it app-level, DB-level, infra-level, or client-level?
+5. **Recover** — `docker compose up -d` to restore desired state
+6. **Verify** — re-run the failing request and confirm `GET /health` returns 200
+7. **Document** — record the timeline and root cause in `docs/incidents/`
+
+---
+
+## Chaos Mode Test Results
+
+| Test | Command | Result |
+|------|---------|--------|
+| Kill app container | `docker kill pe-hackathon-template-2026-app-4` | Remaining 5 replicas continue serving; `docker compose up -d` restores the 6th |
+| Kill nginx | `docker kill pe-hackathon-template-2026-nginx-1` | Port 80 goes down; `docker compose up -d` restores it |
+| Send garbage JSON to `POST /users` | `curl -X POST -H "Content-Type: application/json" -d '{"bad":1}' /users` | Returns `400 {"error": "username must be a non-empty string"}` |
+| Send non-JSON to `POST /urls` | `curl -X POST -d 'not json' /urls` | Returns `400 {"error": "Invalid JSON"}` |
+| Request non-existent user | `GET /users/99999` | Returns `404 {"error": "Not found"}` |
+| Request non-existent URL | `GET /urls/99999` | Returns `404 {"error": "Not found"}` |
