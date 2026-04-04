@@ -1,5 +1,4 @@
 import csv
-import io
 import os
 
 from flask import Blueprint, request, jsonify, abort
@@ -8,67 +7,45 @@ from playhouse.shortcuts import model_to_dict
 
 from app.database import db
 from app.models.user import User
-from app.models.url import Url
-from app.models.event import Event
 
 users_bp = Blueprint("users", __name__)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RES_DIR = os.path.join(BASE_DIR, "res")
-
+DATA_DIR = os.path.join("./data")
 
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
-    file_path = None
-    row_count = None
-
-    # Check for JSON payload first
     data = request.get_json(silent=True)
-    if data:
-        if "file" not in data:
-            print("400: Missing 'file' field")
-            abort(400, description="Missing 'file' field")
-        file_path = os.path.join(RES_DIR, data["file"])
-        row_count = data.get("row_count")
-    else:
-        # Fall back to multipart/form-data
-        if "file" not in request.files:
-            print("400: Missing 'file' field")
-            abort(400, description="Missing 'file' field")
+    if not data:
+        print("400: Missing JSON body")
+        abort(400, description="Missing JSON body")
 
-        file = request.files["file"]
-        if not file.filename or not file.filename.endswith(".csv"):
-            print("400: Invalid file type")
-            abort(400, description="Invalid file type")
+    if "file" not in data:
+        print("400: Missing 'file' field")
+        abort(400, description="Missing 'file' field")
 
-        content = file.read().decode("utf-8")
-        reader = csv.DictReader(io.StringIO(content))
-        rows = list(reader)
+    if "row_count" not in data:
+        print("400: Missing 'row_count' field")
+        abort(400, description="Missing 'row_count' field")
 
-        with db.atomic():
-            User.delete().execute()
-            for batch in chunked(rows, 100):
-                User.insert_many(batch).execute()
+    file_path = os.path.join(DATA_DIR, data["file"])
+    row_count = data.get("row_count")
 
-        return jsonify({"imported": len(rows)}), 200
-
-    # Read CSV from file system
     if not os.path.exists(file_path):
         print(f"400: File not found: {file_path}")
         abort(400, description=f"File not found: {data['file']}")
 
     with open(file_path, newline="") as f:
         reader = csv.DictReader(f)
-        rows = list(reader)
+        rows = list(reader)[:row_count]
 
-    # Create tables if they don't exist
+    db.drop_tables([User], cascade=True)
+    db.create_tables([User])
+
     with db.atomic():
-        db.create_tables([User, Url, Event], safe=True)
-        User.delete().execute()
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
 
-    return jsonify({"imported": len(rows)}), 200
+    return "OK"
 
 
 @users_bp.route("/users", methods=["GET"])
