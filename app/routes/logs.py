@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify
 
-logs_bp = Blueprint("logs", __name__)
+from app.log_store import log_records
 
-log_records = []
+logs_bp = Blueprint("logs", __name__)
 
 
 @logs_bp.route("/logs", methods=["GET"])

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -7,8 +8,8 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 
 from app.database import init_db
+from app.log_store import log_records
 from app.routes import register_routes
-from app.routes.logs import log_records
 
 
 class JsonFormatter(logging.Formatter):
@@ -54,45 +55,47 @@ class ListHandler(logging.Handler):
             except RuntimeError:
                 pass
 
+            if record.exc_info:
+                log_data["exception"] = self.formatException(record.exc_info)
+
             log_records.append(log_data)
 
             if len(log_records) > 200:
                 del log_records[:-200]
         except Exception:
-            pass
+            self.handleError(record)
 
 
 def configure_logging(app):
+    log_level = (
+        logging.DEBUG
+        if os.environ.get("LOG_LEVEL", "").upper() == "DEBUG"
+        else logging.INFO
+    )
+
     json_handler = logging.StreamHandler()
     json_handler.setFormatter(JsonFormatter())
 
     list_handler = ListHandler()
 
+    # App logger — we own this, so replace its handlers entirely.
     app.logger.handlers.clear()
     app.logger.addHandler(json_handler)
     app.logger.addHandler(list_handler)
-    app.logger.setLevel(logging.DEBUG)
+    app.logger.setLevel(log_level)
     app.logger.propagate = False
 
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.addHandler(json_handler)
-    root_logger.addHandler(list_handler)
-    root_logger.setLevel(logging.DEBUG)
-
-    werkzeug_logger = logging.getLogger("werkzeug")
-    werkzeug_logger.handlers.clear()
-    werkzeug_logger.addHandler(json_handler)
-    werkzeug_logger.addHandler(list_handler)
-    werkzeug_logger.setLevel(logging.DEBUG)
-    werkzeug_logger.propagate = False
-
-    peewee_logger = logging.getLogger("peewee")
-    peewee_logger.handlers.clear()
-    peewee_logger.addHandler(json_handler)
-    peewee_logger.addHandler(list_handler)
-    peewee_logger.setLevel(logging.DEBUG)
-    peewee_logger.propagate = False
+    # For shared loggers (root, werkzeug, peewee), only attach our handlers
+    # when none are already present so we don't disrupt handlers that the
+    # runtime (e.g. gunicorn) may have configured.
+    for name in ("", "werkzeug", "peewee"):
+        logger = logging.getLogger(name) if name else logging.getLogger()
+        if not logger.handlers:
+            logger.addHandler(json_handler)
+            logger.addHandler(list_handler)
+        logger.setLevel(log_level)
+        if name:
+            logger.propagate = False
 
 
 def create_app():
