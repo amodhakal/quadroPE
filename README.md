@@ -69,8 +69,7 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
 
 4. **Configure your environment file (`.env`)**
 
-    - A `.env` file already exists in this repo. Update it if your Postgres username/password/port are different.
-    - You can also reset it from the template:
+    Create a `.env` file from the template (`.env` is gitignored and should **not** be committed):
 
     **macOS/Linux**
 
@@ -83,6 +82,8 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
     ```powershell
     Copy-Item .env.example .env
     ```
+
+    Then open `.env` and update the values if your Postgres username, password, or port differ from the defaults.
 
 5. **Run the app**
 
@@ -146,7 +147,7 @@ class Product(BaseModel):
 from app.models.product import Product
 ```
 
-1. Create the table (run once in a Python shell or a setup script):
+2. Create the table (run once in a Python shell or a setup script):
 
 ```python
 from app.database import db
