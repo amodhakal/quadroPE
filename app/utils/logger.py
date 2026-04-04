@@ -13,14 +13,9 @@ class JSONFormatter(logging.Formatter):
 def setup_logger(name="quadroPE"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
+    logger.propagate = False
 
-    has_json_stream_handler = any(
-        isinstance(handler, logging.StreamHandler)
-        and isinstance(handler.formatter, JSONFormatter)
-        for handler in logger.handlers
-    )
-
-    if not has_json_stream_handler:
+    if not logger.handlers:
         handler = logging.StreamHandler()
         handler.setFormatter(JSONFormatter())
         logger.addHandler(handler)

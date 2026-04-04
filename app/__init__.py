@@ -43,15 +43,13 @@ def configure_logging(app):
     app.logger.propagate = False
 
     root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.addHandler(handler)
     root_logger.setLevel(logging.INFO)
+    if not root_logger.handlers:
+        root_logger.addHandler(handler)
 
     werkzeug_logger = logging.getLogger("werkzeug")
-    werkzeug_logger.handlers.clear()
-    werkzeug_logger.addHandler(handler)
     werkzeug_logger.setLevel(logging.INFO)
-    werkzeug_logger.propagate = False
+    werkzeug_logger.propagate = True
 
 
 def create_app():
@@ -68,7 +66,7 @@ def create_app():
 
     @app.before_request
     def log_request():
-        app.logger.info("Request received")
+        app.logger.debug("Request received")
 
     @app.route("/health")
     def health():
