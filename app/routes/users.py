@@ -42,10 +42,27 @@ def list_users():
     users = User.select().limit(per_page).offset(offset)
 
     return jsonify([model_to_dict(u) for u in users])
+
+
+@users_bp.route("/users/<int:user_id>", methods=["GET"])
+def get_user(user_id):
+    try:
+        user = User.get_by_id(user_id)
+    except User.DoesNotExist:
+        abort(404)
+    return jsonify(model_to_dict(user))
+
+
+@users_bp.route("/users", methods=["POST"])
+def create_user():
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            abort(400, description="Invalid JSON")
+        user = User.create(**data)
+        return jsonify(model_to_dict(user)), 201
     except Exception as e:
         abort(400, description=str(e))
-
-    return jsonify(model_to_dict(user)), 201
 
 
 @users_bp.route("/users/<int:user_id>", methods=["PUT"])

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from peewee import CharField, DateTimeField, ForeignKeyField, TextField
 
 from app.database import BaseModel
@@ -9,5 +11,5 @@ class Event(BaseModel):
     url = ForeignKeyField(Url, backref="events")
     user = ForeignKeyField(User, backref="events")
     event_type = CharField()
-    timestamp = DateTimeField()
+    timestamp = DateTimeField(default=datetime.now)
     details = TextField()
