@@ -122,7 +122,7 @@ def update_user(user_id):
 
 
 @users_bp.route("/users/<int:user_id>", methods=["DELETE"])
-def delete_user(user_id):
+def delete_user_endpoint(user_id):
     try:
         user = User.get_by_id(user_id)
         user.delete_instance()
