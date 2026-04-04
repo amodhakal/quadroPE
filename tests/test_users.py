@@ -1,7 +1,6 @@
 """Tests for the /users endpoints."""
 
 import io
-import json
 
 
 # ---------------------------------------------------------------------------
@@ -53,21 +52,24 @@ def test_create_user_duplicate_email(client, sample_user):
 
 
 # ---------------------------------------------------------------------------
-# GET /users — List users
+# GET /users — List users (paginated envelope)
 # ---------------------------------------------------------------------------
 
 def test_list_users_empty(client):
     response = client.get("/users")
     assert response.status_code == 200
-    assert response.get_json() == []
+    data = response.get_json()
+    assert data["kind"] == "list"
+    assert data["sample"] == []
+    assert data["total_items"] == 0
 
 
 def test_list_users_returns_users(client, sample_user):
     response = client.get("/users")
     assert response.status_code == 200
     data = response.get_json()
-    assert len(data) >= 1
-    assert data[0]["username"] == "testuser"
+    assert len(data["sample"]) >= 1
+    assert data["sample"][0]["username"] == "testuser"
 
 
 def test_list_users_pagination(client):
@@ -77,11 +79,12 @@ def test_list_users_pagination(client):
     response = client.get("/users?page=1&per_page=2")
     assert response.status_code == 200
     data = response.get_json()
-    assert len(data) == 2
+    assert len(data["sample"]) == 2
+    assert data["total_items"] == 5
 
     response = client.get("/users?page=3&per_page=2")
     data = response.get_json()
-    assert len(data) == 1
+    assert len(data["sample"]) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -176,8 +179,8 @@ def test_bulk_import_replaces_existing_users(client, sample_user, users_csv):
     assert response.status_code == 200
 
     list_response = client.get("/users")
-    users = list_response.get_json()
-    assert len(users) == 2
-    usernames = {u["username"] for u in users}
+    data = list_response.get_json()
+    assert data["total_items"] == 2
+    usernames = {u["username"] for u in data["sample"]}
     assert "testuser" not in usernames
     assert "alice" in usernames
