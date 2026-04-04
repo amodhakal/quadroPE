@@ -14,7 +14,7 @@ DATA_DIR = os.path.join("./data")
 
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
-    data = request.get_json(silent=True)
+    data = request.get_json()
     if not data:
         print("400: Missing JSON body")
         abort(400, description="Missing JSON body")
