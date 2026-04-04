@@ -20,7 +20,8 @@ def generate_short_code(length=6):
 
 def format_url(url):
     data = model_to_dict(url)
-    data["user_id"] = data.pop("user")
+    user_data = data.pop("user")
+    data["user_id"] = {"id": user_data}
     return data
 
 
@@ -74,7 +75,9 @@ def create_url():
         },
     )
 
-    current_app.logger.info(f"Short URL created with id={url.id} short_code={short_code}")
+    current_app.logger.info(
+        f"Short URL created with id={url.id} short_code={short_code}"
+    )
 
     return jsonify(format_url(url)), 201
 
@@ -166,3 +169,41 @@ def update_url(url_id):
 
     url.save()
     return jsonify(format_url(url))
+
+
+@urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])
+def delete_url(url_id):
+    try:
+        url = Url.get_by_id(url_id)
+    except Url.DoesNotExist:
+        current_app.logger.warning(f"URL not found for delete id={url_id}")
+        abort(404)
+
+    url.delete_instance()
+    current_app.logger.info(f"Deleted URL id={url_id}")
+    return jsonify({"message": "URL deleted", "id": url_id}), 200
+
+
+@urls_bp.route("/<short_code>", methods=["GET"])
+def redirect_short_code(short_code):
+    try:
+        url = Url.select().where(Url.short_code == short_code).get()
+    except Url.DoesNotExist:
+        current_app.logger.warning(f"Short code not found: {short_code}")
+        abort(404)
+
+    if not url.is_active:
+        current_app.logger.warning(f"Short code inactive: {short_code}")
+        abort(404)
+
+    create_event(
+        url.id,
+        url.user_id,
+        "click",
+        {"short_code": short_code},
+    )
+
+    current_app.logger.info(
+        f"Redirecting short code {short_code} to {url.original_url}"
+    )
+    return jsonify({"url": url.original_url, "short_code": short_code})
