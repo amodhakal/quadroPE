@@ -7,13 +7,14 @@ from app.models.event import Event
 from app.models.url import Url
 from app.models.user import User
 
+
 events_bp = Blueprint("events", __name__)
 
 
 def format_event(event):
     d = model_to_dict(event, recurse=False)
     d["url_id"] = d.pop("url")
-    d["user_id"] = d.pop("user")
+    d["user_id"] = {"id": d.pop("user")}
     try:
         d["details"] = json.loads(d["details"])
     except (json.JSONDecodeError, TypeError):
@@ -35,8 +36,9 @@ def list_events():
     if "event_type" in request.args:
         query = query.where(Event.event_type == request.args["event_type"])
 
+
     result = [format_event(e) for e in query.limit(size).offset(offset)]
-    return jsonify({"kind": "list", "items": result})
+    return jsonify(result)
 
 
 @events_bp.route("/events", methods=["POST"])
