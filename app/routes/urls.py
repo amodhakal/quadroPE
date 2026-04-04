@@ -76,6 +76,9 @@ def create_url():
 
 @urls_bp.route("/urls", methods=["GET"])
 def list_urls():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+
     query = Url.select()
 
     if "id" in request.args:
@@ -90,7 +93,10 @@ def list_urls():
         val = request.args["is_active"].lower()
         query = query.where(Url.is_active == (val == "true"))
 
-    return jsonify([format_url(u) for u in query])
+    offset = (page - 1) * per_page
+    urls = query.limit(per_page).offset(offset)
+
+    return jsonify([format_url(u) for u in urls])
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -99,6 +105,9 @@ def get_url(url_id):
         url = Url.get_by_id(url_id)
     except Url.DoesNotExist:
         abort(404)
+    except Exception as e:
+        print(f"500: {e}")
+        abort(500, description="Internal server error")
     return jsonify(format_url(url))
 
 

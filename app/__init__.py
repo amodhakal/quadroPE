@@ -32,4 +32,8 @@ def create_app():
     def unprocessable_entity(error):
         return jsonify({"error": "Unprocessable entity"}), 422
 
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({"error": "Internal server error"}), 500
+
     return app
