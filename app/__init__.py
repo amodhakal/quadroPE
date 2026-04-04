@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
@@ -91,6 +92,7 @@ def create_app():
     @app.errorhandler(500)
     def internal_server_error(error):
         app.logger.exception("Internal server error")
-        return jsonify({"error": str(error)}), 500
+        _, exc, _ = sys.exc_info()
+        return jsonify({"error": str(exc)}), 500
 
     return app
