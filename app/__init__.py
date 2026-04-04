@@ -20,7 +20,6 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-
         try:
             log_data["method"] = request.method
             log_data["path"] = request.path
@@ -29,10 +28,8 @@ class JsonFormatter(logging.Formatter):
             )
         except RuntimeError:
             pass
-
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
-
         return json.dumps(log_data)
 
 
@@ -45,7 +42,6 @@ class ListHandler(logging.Handler):
                 "logger": record.name,
                 "message": record.getMessage(),
             }
-
             try:
                 log_data["method"] = request.method
                 log_data["path"] = request.path
@@ -54,12 +50,9 @@ class ListHandler(logging.Handler):
                 )
             except RuntimeError:
                 pass
-
             if record.exc_info:
                 log_data["exception"] = self.formatException(record.exc_info)
-
             log_records.append(log_data)
-
             if len(log_records) > 200:
                 del log_records[:-200]
         except Exception:
@@ -72,37 +65,29 @@ def configure_logging(app):
         if os.environ.get("LOG_LEVEL", "").upper() == "DEBUG"
         else logging.INFO
     )
-
     json_handler = logging.StreamHandler()
     json_handler.setFormatter(JsonFormatter())
-
     list_handler = ListHandler()
 
-    # App logger — we own this, so replace its handlers entirely.
     app.logger.handlers.clear()
     app.logger.addHandler(json_handler)
     app.logger.addHandler(list_handler)
     app.logger.setLevel(log_level)
     app.logger.propagate = False
 
-    # For shared loggers (root, werkzeug, peewee), only attach our handlers
-    # when none are already present so we don't disrupt handlers that the
-    # runtime (e.g. gunicorn) may have configured.
     for name in ("", "werkzeug", "peewee"):
         logger = logging.getLogger(name) if name else logging.getLogger()
         if not logger.handlers:
             logger.addHandler(json_handler)
             logger.addHandler(list_handler)
-        logger.setLevel(log_level)
-        if name:
-            logger.propagate = False
+            logger.setLevel(log_level)
+            if name:
+                logger.propagate = False
 
 
 def create_app():
     load_dotenv()
-
     app = Flask(__name__)
-
     configure_logging(app)
     init_db(app)
 
@@ -139,5 +124,10 @@ def create_app():
         app.logger.exception("Internal server error")
         _, exc, _ = sys.exc_info()
         return jsonify({"error": str(exc)}), 500
+
+    # Start Discord alert monitor in background
+    from app.utils.alerts import start_alerting
+    app_url = os.environ.get("APP_URL", "http://127.0.0.1:5000")
+    start_alerting(app_url=app_url, interval=60)
 
     return app
