@@ -36,7 +36,6 @@ def list_events():
     if "event_type" in request.args:
         query = query.where(Event.event_type == request.args["event_type"])
 
-
     result = [format_event(e) for e in query.limit(size).offset(offset)]
     return jsonify(result)
 
@@ -52,6 +51,10 @@ def create_event():
     user_id = data.get("user_id")
     event_type = data.get("event_type")
     details = data.get("details", {})
+
+    if not isinstance(details, dict):
+        current_app.logger.warning("details must be an object")
+        abort(400, description="details must be an object")
 
     if not url_id or not isinstance(url_id, int):
         current_app.logger.warning("url_id must be an integer")
