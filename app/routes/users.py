@@ -16,10 +16,14 @@ DATA_DIR = os.path.join("./data")
 
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
-    if not request.content_type or not request.content_type.startswith('multipart/form-data'):
-        current_app.logger.warning(f"Invalid Content-Type for bulk import: {request.content_type}")
+    if not request.content_type or not request.content_type.startswith(
+        "multipart/form-data"
+    ):
+        current_app.logger.warning(
+            f"Invalid Content-Type for bulk import: {request.content_type}"
+        )
         abort(415, description="Content-Type must be multipart/form-data")
-    
+
     if "file" not in request.files:
         current_app.logger.warning("Missing 'file' field in bulk import request")
         abort(400, description="Missing 'file' field")
@@ -43,30 +47,37 @@ def bulk_import_users():
 
     return jsonify({"imported": len(rows)}), 200
 
+
 @users_bp.route("/users", methods=["GET"])
 def list_users():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
 
     body = request.get_json(silent=True) or {}
-    
+
     # Validate page from body
     if "page" in body:
         if not isinstance(body["page"], int):
-            current_app.logger.warning(f"Invalid page type in body: {type(body['page'])}")
+            current_app.logger.warning(
+                f"Invalid page type in body: {type(body['page'])}"
+            )
             abort(400, description="page must be an integer")
         if body["page"] < 1:
             current_app.logger.warning(f"Invalid page value in body: {body['page']}")
             abort(400, description="page must be a positive integer")
         page = body["page"]
-    
+
     # Validate per_page from body
     if "per_page" in body:
         if not isinstance(body["per_page"], int):
-            current_app.logger.warning(f"Invalid per_page type in body: {type(body['per_page'])}")
+            current_app.logger.warning(
+                f"Invalid per_page type in body: {type(body['per_page'])}"
+            )
             abort(400, description="per_page must be an integer")
         if body["per_page"] < 1:
-            current_app.logger.warning(f"Invalid per_page value in body: {body['per_page']}")
+            current_app.logger.warning(
+                f"Invalid per_page value in body: {body['per_page']}"
+            )
             abort(400, description="per_page must be a positive integer")
         per_page = body["per_page"]
 
@@ -98,7 +109,15 @@ def create_user():
         if not data:
             current_app.logger.warning("Invalid JSON received for create_user")
             abort(400, description="Invalid JSON")
-        user = User.create(**data)
+
+        username = data.get("username")
+        email = data.get("email")
+
+        if not username or not email:
+            current_app.logger.warning("Missing username or email in create_user")
+            abort(400, description="username and email are required")
+
+        user = User.create(username=username, email=email)
         result = model_to_dict(user)
         set_user(user.id, result)
         return jsonify(result), 201
