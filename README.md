@@ -46,7 +46,7 @@ If this is your first Flask + Postgres app, follow these exact steps in order:
 
     ```bash
     git clone <repo-url>
-    cd PE-Hackathon-Template-2026
+    cd <repo-folder>
     ```
 
 2. **Install dependencies**
