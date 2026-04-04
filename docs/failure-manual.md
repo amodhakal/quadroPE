@@ -1,49 +1,63 @@
-# Failure Manual / Incident Report (Template)
+# Failure Manual / Failure Modes
 
-> This document is a template.
-> Replace all placeholder values (for example: `<DATE/TIME>`, `<X>`, `<sha>`, `<metric>`) before using it for a real incident.
+This document describes what failure looks like in quadroPE, how to confirm each failure mode, and how to recover quickly.
 
-## How to use this template
+## 1. Failure mode catalog
 
-1. Copy this file for each incident (for example, `incident-2026-04-04-db-timeout.md`).
-1. Fill every placeholder with concrete values from logs, dashboards, and deploy history.
-1. Keep the timeline in chronological order and include exact UTC times when possible.
-1. Add follow-up action owners and due dates.
+### A) App process unavailable
 
-## Incident summary
+- **Symptoms:** `GET /health` times out or returns connection refused.
+- **Where seen first:** Discord "Service Down" alert from the health monitor.
+- **Likely causes:** crashed process, container stopped, startup failure.
+- **Recovery:** restart app process/container, then confirm `GET /health` returns `200` with `{"status":"ok"}`.
 
-On <DATE/TIME>, quadroPE returned errors for users due to <root cause – e.g., exhausted DB connections, bad deploy, misconfiguration>. The outage lasted approximately <X minutes>.
+### B) Database unavailable or credentials mismatch
 
-## Impact
+- **Symptoms:** 500s on data endpoints, errors mentioning `psycopg`/connection refused in logs.
+- **Where seen first:** `/logs` endpoint and application stderr/stdout logs.
+- **Likely causes:** Postgres stopped, wrong `.env` credentials, wrong host/port.
+- **Recovery:** start Postgres, verify `.env` (`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`), retry request.
 
-- Affected environment: (staging / production)
-- User-visible symptoms: timeouts / 5xxs on <endpoints>.
-- Scope: <percentage or rough count of requests affected>.
+### C) Invalid client payloads
 
-## Timeline
+- **Symptoms:** 400/422 responses with polite JSON error messages.
+- **Where seen first:** API response body and `/logs` warning entries.
+- **Likely causes:** missing required JSON fields, wrong types (for example `user_id` not integer).
+- **Recovery:** correct request schema and retry. No server restart needed.
 
-- <t0> – Problem detected (alert / dashboard / manual report).
-- <t1> – On-call acknowledged.
-- <t2> – First mitigation step (rollback / restart / config change).
-- <t3> – Service fully recovered.
+### D) Health endpoint degraded while app is reachable
 
-## Root cause
+- **Symptoms:** app responds on other routes but `/health` returns non-200.
+- **Where seen first:** monitoring check and Discord alert.
+- **Likely causes:** dependency degradation (typically DB reachability).
+- **Recovery:** validate DB connectivity and environment config, then confirm `/health` recovers.
 
-The underlying cause was <technical reason – e.g., new release introduced a regression in DB access, causing connection leaks and timeouts under load>.
+## 2. Incident response checklist
 
-## Mitigation and resolution
+1. Confirm incident with `GET /health`.
+1. Collect evidence from `GET /logs` and, if available, `GET /metrics`.
+1. Identify whether failure is app-level, DB-level, or request-schema-level.
+1. Apply targeted recovery (restart app, recover DB, rollback bad deploy, or fix request schema).
+1. Verify recovery by re-running failing request and `/health`.
+1. Record timeline and root cause in a new incident note under `docs/`.
 
-- Rolled back to commit `<sha>`.
-- Restarted application processes.
-- Verified `/health` returned `{"status": "ok"}` and error rate returned to baseline.
+## 3. Standard incident note format
 
-## Lessons learned
+Create a new file per incident, for example:
 
-- What worked well: e.g., health check and logs quickly pointed to DB.
-- What failed: e.g., missing limit on open connections, no alert on queue depth.
+- `docs/incidents/incident-2026-04-04-health-down.md`
 
-## Follow-up actions
+Include:
 
-- [ ] Add test / check to prevent similar regression.
-- [ ] Add dashboard panel for <metric>.
-- [ ] Add an alert at threshold <X>.
+- Summary
+- Impacted endpoints
+- Timeline (UTC)
+- Root cause
+- Mitigation
+- Prevention actions
+
+## 4. Prevention actions backlog
+
+- [ ] Add an automated test for at least one previously observed bad payload case.
+- [ ] Add dashboard chart(s) for health status, request errors, and DB connectivity signals.
+- [ ] Add explicit alert thresholds for sustained 5xx rates and repeated health check failures.

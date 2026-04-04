@@ -30,7 +30,7 @@ quadroPE is a Flask-based API backed by PostgreSQL. It exposes a `/health` endpo
 
 ### Production
 
-1. Go to: `https://<your-app-domain>/health`
+1. Go to your deployed app health endpoint, for example: `https://your-domain/health`
 2. Expected JSON: `{"status": "ok"}`.
 3. If you see non-200 or a different payload, follow the “Common failures” section.
 
@@ -137,6 +137,6 @@ The app’s alert monitor currently sends Discord alerts when the `/health` chec
 
 ## 6. Escalation
 
-- **Primary owner:** @<github-handle>
-- **Secondary:** @<backup-handle>
-- If outage exceeds 30 minutes, open a GitHub issue titled `[INCIDENT] <short summary>` and link any dashboard screenshots and logs.
+- **Primary owner:** the currently assigned on-call engineer.
+- **Secondary:** any available teammate with deploy access.
+- If outage exceeds 30 minutes, open a GitHub issue titled `[INCIDENT] short summary` and link relevant dashboard screenshots and logs.

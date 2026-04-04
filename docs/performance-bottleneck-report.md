@@ -1,48 +1,55 @@
-# Performance & Bottleneck Report (Template)
+# Performance & Bottleneck Report
 
-> This document is a template.
-> Replace all placeholder values (for example: `<X>`, `<Y>`, `<Z>`, `<E>`, `<N>`, `<table.column>`) with actual measured results.
+This report documents the current bottleneck profile for quadroPE and the next optimization priorities.
 
-## How to use this template
+## Scope and approach
 
-1. Run a baseline load test against your local or deployed app.
-1. Record exact command, duration, and environment details.
-1. Capture p50/p95 latency, throughput, and error rate.
-1. Apply one change at a time and re-run the same test for fair comparison.
+This project currently uses:
+
+- Flask app service behind Nginx in Docker Compose
+- PostgreSQL for persistence
+- `/health`, `/metrics`, and `/logs` as operational endpoints
+
+Load testing can be executed with:
+
+- `scripts/test_locust.py`
+- scenarios in `loadtests/`
 
 ## Test setup
 
-- Environment: local / staging
-- Tool: hey / k6 / ab / wrk
+- Environment: local Docker Compose stack
+- Tooling options: Locust (`scripts/test_locust.py`) or `hey`
 - Command: `hey -z 30s -q 50 http://localhost:5000/health`
-- Baseline: app running with default config, Postgres on same host.
+- Baseline: app and Postgres running on the same host with default project configuration.
 
-## Observations
+## Current bottleneck observations
 
-- Throughput: ~<X> requests/second.
-- Median latency (p50): <Y> ms.
-- p95 latency: <Z> ms.
-- Error rate: <E>% (4xx/5xx).
+- The health endpoint is lightweight and stable, but does not represent database-heavy paths.
+- Endpoints that hit Postgres (`/users`, `/urls`, `/events`) are expected to be bottlenecked first under concurrent load.
+- The default Flask process model is more sensitive to concurrency than multi-worker production servers.
+- Under prolonged stress, DB contention and app worker saturation are the primary risk factors.
 
 ## Identified bottlenecks
 
-1. **Database contention** at higher concurrency (connections saturate, latency spikes).
-2. **Single-process Flask server** becomes CPU-bound around <N> concurrent requests.
-3. Any other real observation you can make from your tests.
+1. **Database contention risk** at higher concurrency (connection pressure and query latency spikes).
+2. **App worker saturation risk** under concurrent request bursts.
+3. **Limited observability history** (current endpoints provide snapshots, not long-lived time series).
 
-## Changes made
+## Mitigations already in place
 
-- Enabled connection pooling / tuned max connections.
-- Switched to a production-grade WSGI server (e.g., gunicorn or uvicorn with workers).
-- Added basic indexes on `<table.column>` to avoid full scans on common queries.
+- Reverse proxy and service decomposition via Docker Compose (`app`, `postgres`, `redis`, `nginx`).
+- Restart policies (`unless-stopped`) configured to improve recovery behavior under process crashes.
+- Operational visibility endpoints implemented: `/metrics` and `/logs`.
 
-## Results after changes
+## Next optimizations to execute
 
-- New throughput: <X2> requests/second.
-- p95 latency improved from <Z> ms to <Z2> ms.
-- Error rate reduced from <E>% to <E2>% under the same load.
+1. Run repeatable Locust scenarios for `/users`, `/urls`, and `/events` with increasing concurrency.
+2. Capture p50/p95 latency and error rates for each endpoint family.
+3. Add indexes for the most common query filters once slow paths are confirmed.
+4. Compare single-process vs multi-worker app serving for throughput and tail latency.
 
 ## Remaining risks
 
-- Under extreme load (>N RPS), still CPU-bound – consider horizontal scaling.
-- Need better observability (metrics, tracing) for deeper analysis.
+- Tail latency regressions may appear before average latency changes are noticeable.
+- Database saturation can cascade into health check failures if not detected early.
+- Missing long-term dashboard history reduces confidence in capacity planning.
