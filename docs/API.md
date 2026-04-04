@@ -239,3 +239,57 @@ Ensure your API is running and ready to accept requests.
     }
   ]
   ```
+
+## What changed
+
+### 1) Response schema is now more flexible
+Your API responses may now include additional fields/metadata without being penalized.
+
+- Extra keys are allowed.
+- Additional wrapper objects are allowed.
+- The tests now focus on whether the required data points are present and correct. These required data points come from the seed files that you can download from your team page.
+
+### 2) Nested response shapes are accepted
+For checks like `id`, `user_id`, `url_id`, `event_type`, `is_active`, and `short_code`, tests now support values that appear in nested objects (not only top-level fields).
+
+### 3) Better participant diagnostics
+Failure diagnostics shown were improved so they better reflect nested/wrapped response payloads and reduce false mismatch messages.
+
+## What did NOT change
+
+- Endpoint behavior requirements remain the same.
+- Status code expectations remain the same.
+- Hidden challenge tests are still hidden and shown as **Advanced challenge #N**. We will be sharing hints very very soon.
+
+## Do you need to change your submission?
+
+**Not necessarily.**
+
+If your API already returns the required values, even with additional fields or nesting, you should be in better shape with the updated tests.
+
+## Effective scope
+
+These updates apply to new evaluations/reruns. Existing completed evaluations are unchanged.
+
+## Example (now accepted)
+
+If a test expects `id: 1`, these can both be valid:
+
+```json
+{ "id": 1 }
+```
+
+```json
+{ "data": { "user": { "id": 1, "extra": "ok" } } }
+```
+
+Likewise, list/filter checks can pass when fields appear in nested sample records.
+
+## Need help?
+
+If your latest run still fails and the feedback looks unclear, create a post on the Q&A section on this platform with this information:
+
+- endpoint tested,
+- expected behavior,
+- your actual response payload,
+- and the reported diagnostic message.
