@@ -23,6 +23,9 @@ def format_event(event):
 
 @events_bp.route("/events", methods=["GET"])
 def list_events():
+    offset = request.args.get("offset", 0, type=int)
+    size = request.args.get("size", 20, type=int)
+
     query = Event.select()
 
     if "url_id" in request.args:
@@ -32,7 +35,7 @@ def list_events():
     if "event_type" in request.args:
         query = query.where(Event.event_type == request.args["event_type"])
 
-    result = [format_event(e) for e in query]
+    result = [format_event(e) for e in query.limit(size).offset(offset)]
     return jsonify({"kind": "list", "items": result})
 
 

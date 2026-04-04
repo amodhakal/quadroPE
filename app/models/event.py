@@ -14,3 +14,10 @@ class Event(BaseModel):
     event_type = CharField()
     timestamp = DateTimeField(default=datetime.now)
     details = TextField()
+
+    class Meta:
+        indexes = (
+            (("url",), False),
+            (("user",), False),
+            (("event_type",), False),
+        )

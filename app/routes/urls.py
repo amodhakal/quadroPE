@@ -90,8 +90,8 @@ def create_url():
 
 @urls_bp.route("/urls", methods=["GET"])
 def list_urls():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    size = request.args.get("size", 20, type=int)
 
     query = Url.select()
 
@@ -111,8 +111,7 @@ def list_urls():
         val = request.args["is_active"].lower()
         query = query.where(Url.is_active == (val == "true"))
 
-    offset = (page - 1) * per_page
-    urls = list(query.limit(per_page).offset(offset))
+    urls = list(query.limit(size).offset(offset))
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
     return jsonify({"kind": "list", "items": [format_url(u) for u in urls]})
