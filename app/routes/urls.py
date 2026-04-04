@@ -15,6 +15,7 @@ from app.models.url import Url
 from app.models.user import User
 from app.utils.events import create_event
 
+
 urls_bp = Blueprint("urls", __name__)
 
 
@@ -27,7 +28,7 @@ def generate_short_code(length=6):
 
 def format_url(url):
     data = model_to_dict(url, recurse=False)
-    data["user_id"] = data.pop("user")
+    data["user_id"] = {"id": data.pop("user")}
     return data
 
 
@@ -115,7 +116,7 @@ def list_urls():
     urls = list(query.limit(per_page).offset(offset))
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
-    return jsonify({"kind": "list", "items": [format_url(u) for u in urls]})
+    return jsonify([format_url(url) for url in urls])
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -125,8 +126,8 @@ def get_url(url_id):
     except Url.DoesNotExist:
         current_app.logger.warning(f"URL not found for id={url_id}")
         abort(404)
-    except Exception as e:
-        current_app.logger.exception(f"Unexpected error fetching URL id={url_id}: {e}")
+    except Exception as error:
+        current_app.logger.exception(f"Unexpected error fetching URL id={url_id}: {error}")
         abort(500, description="Internal server error")
 
     current_app.logger.info(f"Fetched URL id={url_id}")
