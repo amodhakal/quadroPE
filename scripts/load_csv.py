@@ -10,7 +10,7 @@ from app.database import db
 from app.models import User, Url, Event
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RES_DIR = os.path.join(BASE_DIR, "res")
+RES_DIR = os.path.join(BASE_DIR, "data")
 
 
 def load_csv(filepath):

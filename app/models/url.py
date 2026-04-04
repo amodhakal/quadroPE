@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from peewee import AutoField, CharField, DateTimeField, ForeignKeyField, BooleanField
+from peewee import (
+    AutoField,
+    CharField,
+    DateTimeField,
+    ForeignKeyField,
+    BooleanField,
+    Index,
+)
 
 from app.database import BaseModel
 from app.models.user import User
@@ -15,6 +22,13 @@ class Url(BaseModel):
     is_active = BooleanField()
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
+
+    class Meta:
+        indexes = (
+            (("user",), False),
+            (("is_active",), False),
+            (("original_url",), False),
+        )
 
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
