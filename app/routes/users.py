@@ -85,6 +85,15 @@ def create_user():
         if not data:
             current_app.logger.warning("Invalid JSON received for create_user")
             abort(400, description="Invalid JSON")
+
+        username = data.get("username")
+        email = data.get("email")
+
+        if not username or not isinstance(username, str) or not username.strip():
+            abort(400, description="username must be a non-empty string")
+        if not email or not isinstance(email, str) or not email.strip():
+            abort(400, description="email must be a non-empty string")
+
         user = User.create(**data)
         result = model_to_dict(user)
         set_user(user.id, result)
