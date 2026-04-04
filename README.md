@@ -146,7 +146,7 @@ class Product(BaseModel):
 from app.models.product import Product
 ```
 
-1. Create the table (run once in a Python shell or a setup script):
+2. Create the table (run once in a Python shell or a setup script):
 
 ```python
 from app.database import db
