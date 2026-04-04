@@ -15,7 +15,7 @@ def test_create_url(client, sample_user):
     data = response.get_json()
     assert data["original_url"] == "https://example.com/page"
     assert data["title"] == "My Page"
-    assert data["user_id"]["id"] == sample_user.id
+    assert data["user_id"] == sample_user.id
     assert data["is_active"] is True
     assert "short_code" in data
     assert len(data["short_code"]) == 6
@@ -94,35 +94,38 @@ def test_create_url_records_event(client, sample_user):
 
 
 # ---------------------------------------------------------------------------
-# GET /urls — List URLs
+# GET /urls — List URLs (paginated envelope)
 # ---------------------------------------------------------------------------
 
 def test_list_urls_empty(client):
     response = client.get("/urls")
     assert response.status_code == 200
-    assert response.get_json() == []
+    data = response.get_json()
+    assert data["kind"] == "list"
+    assert data["sample"] == []
+    assert data["total_items"] == 0
 
 
 def test_list_urls_returns_urls(client, sample_url):
     response = client.get("/urls")
     assert response.status_code == 200
     data = response.get_json()
-    assert len(data) >= 1
-    assert data[0]["short_code"] == "abc123"
+    assert len(data["sample"]) >= 1
+    assert data["sample"][0]["short_code"] == "abc123"
 
 
 def test_list_urls_filter_by_user_id(client, sample_url, sample_user):
     response = client.get(f"/urls?user_id={sample_user.id}")
     assert response.status_code == 200
     data = response.get_json()
-    assert all(u["user_id"]["id"] == sample_user.id for u in data)
+    assert all(u["user_id"] == sample_user.id for u in data["sample"])
 
 
 def test_list_urls_filter_by_is_active(client, sample_url):
     response = client.get("/urls?is_active=true")
     assert response.status_code == 200
     data = response.get_json()
-    assert all(u["is_active"] is True for u in data)
+    assert all(u["is_active"] is True for u in data["sample"])
 
 
 # ---------------------------------------------------------------------------
