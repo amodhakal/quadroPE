@@ -1,4 +1,4 @@
-# uvx locust -f scripts/test_locust.py --host http://127.0.0.1:5000
+# uvx locust -f scripts/test_locust.py --host http://127.0.0.1/
 
 import random
 import string
