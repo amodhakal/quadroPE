@@ -16,6 +16,10 @@ DATA_DIR = os.path.join("./data")
 
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
+    if not request.content_type or not request.content_type.startswith('multipart/form-data'):
+        current_app.logger.warning(f"Invalid Content-Type for bulk import: {request.content_type}")
+        abort(415, description="Content-Type must be multipart/form-data")
+    
     if "file" not in request.files:
         current_app.logger.warning("Missing 'file' field in bulk import request")
         abort(400, description="Missing 'file' field")
