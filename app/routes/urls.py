@@ -81,6 +81,9 @@ def create_url():
 
 @urls_bp.route("/urls", methods=["GET"])
 def list_urls():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+
     query = Url.select()
 
     if "id" in request.args:
@@ -99,10 +102,11 @@ def list_urls():
         val = request.args["is_active"].lower()
         query = query.where(Url.is_active == (val == "true"))
 
-    urls = [format_url(u) for u in query]
+    offset = (page - 1) * per_page
+    urls = list(query.limit(per_page).offset(offset))
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
-    return jsonify(urls)
+    return jsonify([format_url(u) for u in urls])
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
@@ -112,6 +116,9 @@ def get_url(url_id):
     except Url.DoesNotExist:
         current_app.logger.warning(f"URL not found for id={url_id}")
         abort(404)
+    except Exception as e:
+        current_app.logger.exception(f"Unexpected error fetching URL id={url_id}: {e}")
+        abort(500, description="Internal server error")
 
     current_app.logger.info(f"Fetched URL id={url_id}")
     return jsonify(format_url(url))

@@ -1,5 +1,5 @@
 import csv
-import io
+import os
 
 from flask import Blueprint, request, jsonify, abort
 from peewee import chunked
@@ -9,6 +9,8 @@ from app.database import db
 from app.models.user import User
 
 users_bp = Blueprint("users", __name__)
+
+DATA_DIR = os.path.join("./data")
 
 
 @users_bp.route("/users/bulk", methods=["POST"])
@@ -20,14 +22,15 @@ def bulk_import_users():
     file = request.files["file"]
     if not file.filename or not file.filename.endswith(".csv"):
         print("400: Invalid file type")
-        abort(400, description="Invalid file type")
+        abort(400, description="Invalid file type, expected .csv")
 
-    content = file.read().decode("utf-8")
-    reader = csv.DictReader(io.StringIO(content))
+    reader = csv.DictReader(file.stream.read().decode("utf-8").splitlines())
     rows = list(reader)
 
+    db.drop_tables([User], cascade=True)
+    db.create_tables([User])
+
     with db.atomic():
-        User.delete().execute()
         for batch in chunked(rows, 100):
             User.insert_many(batch).execute()
 

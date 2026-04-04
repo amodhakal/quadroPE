@@ -1,4 +1,4 @@
-# uvx locust -f scripts/test_locust.py --host http://127.0.0.1:5000
+# uvx locust -f scripts/test_locust.py --host http://127.0.0.1/
 
 import random
 import string
@@ -178,17 +178,17 @@ class URLShortenerUser(HttpUser):
                 response.failure(
                     f"Failed to update URL: {response.status_code}")
 
-    @task(2)
-    def list_events(self):
-        with self.client.get(
-            "/events",
-            catch_response=True,
-        ) as response:
-            if response.status_code == 200:
-                response.success()
-            else:
-                response.failure(
-                    f"Failed to list events: {response.status_code}")
+    # @task(2)
+    # def list_events(self):
+    #     with self.client.get(
+    #         "/events",
+    #         catch_response=True,
+    #     ) as response:
+    #         if response.status_code == 200:
+    #             response.success()
+    #         else:
+    #             response.failure(
+    #                 f"Failed to list events: {response.status_code}")
 
     @task(1)
     def create_user_new(self):
