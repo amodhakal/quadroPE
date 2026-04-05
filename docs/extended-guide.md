@@ -38,27 +38,10 @@ The app can run with different DB targets depending on context. A practical prof
 ## Suggested engineering workflow
 
 1. Run the app and verify health (`/health`).
-1. Load seed data and validate list endpoints.
-1. Run tests (`uv run pytest`).
-1. Capture performance baseline before optimizations.
-1. Open PR with test evidence and any known limitations.
-
-
-## Capacity Info
-
-On M1 air, we peak at almost 600 req/s with 1.7s p95 latency with 3,000 users, and will throttle after this. It seems like the RAM is the bottleneck preventing us from getting a better result.
-
-
-```
-{
-  "cpu_percent":98.0,
-  "process_memory_mb":51.9,
-  "system_ram":{
-    "total_gb":3.9,
-    "used_gb":3.2
-  }
-}
-```
+2. Load seed data and validate list endpoints.
+3. Run tests (`uv run pytest`).
+4. Capture performance baseline before optimizations.
+5. Open PR with test evidence and any known limitations.
 
 ## Decision Log
 
