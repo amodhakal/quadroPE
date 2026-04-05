@@ -32,7 +32,7 @@
 
     ```bash
     git clone <repo-url>
-    cd PE-Hackathon-Template-2026
+    cd quadroPE
     ```
 
 2. **Configure your environment file (`.env`)**
