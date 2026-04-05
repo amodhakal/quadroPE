@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 
@@ -10,6 +11,7 @@ from flask import Flask, jsonify, request
 
 from app.database import init_db
 from app.log_store import log_records
+from app.metrics_store import record_request_end, record_request_start
 from app.routes import register_routes
 
 
@@ -98,7 +100,15 @@ def create_app():
 
     @app.before_request
     def log_request():
+        request._start_time = time.time()
+        record_request_start()
         app.logger.info("Request received")
+
+    @app.after_request
+    def track_metrics(response):
+        latency_ms = (time.time() - getattr(request, "_start_time", time.time())) * 1000
+        record_request_end(request.method, request.path, response.status_code, latency_ms)
+        return response
 
     @app.route("/health")
     def health():
