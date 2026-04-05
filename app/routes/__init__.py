@@ -5,6 +5,8 @@ def register_routes(app):
     from app.routes.metrics import metrics_bp
     from app.routes.logs import logs_bp
     from app.routes.fail import fail_bp
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.prometheus import prometheus_bp
 
     app.register_blueprint(users_bp)
     app.register_blueprint(urls_bp)
@@ -12,3 +14,5 @@ def register_routes(app):
     app.register_blueprint(metrics_bp)
     app.register_blueprint(logs_bp)
     app.register_blueprint(fail_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(prometheus_bp)
