@@ -27,7 +27,14 @@ def list_events():
     offset = request.args.get("offset", 0, type=int)
     size = request.args.get("size", 20, type=int)
 
-    query = Event.select()
+    query = Event.select(
+        Event.id,
+        Event.url,
+        Event.user,
+        Event.event_type,
+        Event.timestamp,
+        Event.details,
+    )
 
     if "url_id" in request.args:
         query = query.where(Event.url == request.args.get("url_id", type=int))
@@ -36,7 +43,23 @@ def list_events():
     if "event_type" in request.args:
         query = query.where(Event.event_type == request.args["event_type"])
 
-    result = [format_event(e) for e in query.limit(size).offset(offset)]
+    result = []
+    for e in query.limit(size).offset(offset):
+        details = {}
+        try:
+            details = json.loads(e.details) if e.details else {}
+        except (json.JSONDecodeError, TypeError):
+            pass
+        result.append(
+            {
+                "id": e.id,
+                "url_id": e.url_id,
+                "user_id": {"id": e.user_id},
+                "event_type": e.event_type,
+                "timestamp": e.timestamp.isoformat(),
+                "details": details,
+            }
+        )
     return jsonify(result)
 
 

@@ -16,10 +16,14 @@ DATA_DIR = os.path.join("./data")
 
 @users_bp.route("/users/bulk", methods=["POST"])
 def bulk_import_users():
-    if not request.content_type or not request.content_type.startswith('multipart/form-data'):
-        current_app.logger.warning(f"Invalid Content-Type for bulk import: {request.content_type}")
+    if not request.content_type or not request.content_type.startswith(
+        "multipart/form-data"
+    ):
+        current_app.logger.warning(
+            f"Invalid Content-Type for bulk import: {request.content_type}"
+        )
         abort(415, description="Content-Type must be multipart/form-data")
-    
+
     if "file" not in request.files:
         current_app.logger.warning("Missing 'file' field in bulk import request")
         abort(400, description="Missing 'file' field")
@@ -50,35 +54,53 @@ def list_users():
     per_page = request.args.get("per_page", 20, type=int)
 
     body = request.get_json(silent=True) or {}
-    
+
     # Validate page from body
     if "page" in body:
         if not isinstance(body["page"], int):
-            current_app.logger.warning(f"Invalid page type in body: {type(body['page'])}")
+            current_app.logger.warning(
+                f"Invalid page type in body: {type(body['page'])}"
+            )
             abort(400, description="page must be an integer")
         if body["page"] < 1:
             current_app.logger.warning(f"Invalid page value in body: {body['page']}")
             abort(400, description="page must be a positive integer")
         page = body["page"]
-    
+
     # Validate per_page from body
     if "per_page" in body:
         if not isinstance(body["per_page"], int):
-            current_app.logger.warning(f"Invalid per_page type in body: {type(body['per_page'])}")
+            current_app.logger.warning(
+                f"Invalid per_page type in body: {type(body['per_page'])}"
+            )
             abort(400, description="per_page must be an integer")
         if body["per_page"] < 1:
-            current_app.logger.warning(f"Invalid per_page value in body: {body['per_page']}")
+            current_app.logger.warning(
+                f"Invalid per_page value in body: {body['per_page']}"
+            )
             abort(400, description="per_page must be a positive integer")
         per_page = body["per_page"]
 
     total = User.select().count()
     offset = (page - 1) * per_page
-    users = User.select().limit(per_page).offset(offset)
+    users = (
+        User.select(User.id, User.username, User.email, User.created_at)
+        .limit(per_page)
+        .offset(offset)
+    )
 
     return jsonify(
         {
             "kind": "list",
-            "sample": [model_to_dict(u) for u in users],
+            "sample": [
+                {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "created_at": u.created_at.isoformat(),
+                }
+                for u in users
+            ],
             "total_items": total,
         }
     )

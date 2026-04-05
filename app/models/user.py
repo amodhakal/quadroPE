@@ -10,3 +10,9 @@ class User(BaseModel):
     username = CharField(unique=True)
     email = CharField(unique=True)
     created_at = DateTimeField(default=datetime.now)
+
+    class Meta:
+        indexes = (
+            (("username",), False),
+            (("email",), False),
+        )
