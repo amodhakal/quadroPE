@@ -10,7 +10,7 @@ import redis
 
 _l1 = OrderedDict()
 _l1_lock = threading.Lock()
-_L1_MAX = 256
+_L1_MAX = 2048
 
 _l2 = None
 _l2_pool = None

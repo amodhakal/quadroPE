@@ -99,9 +99,27 @@ def list_urls():
 
     body = request.get_json(silent=True) or {}
     if "user_id" in body:
-        query = Url.select().where(Url.user_id == body["user_id"])
+        query = Url.select(
+            Url.id,
+            Url.user,
+            Url.short_code,
+            Url.original_url,
+            Url.title,
+            Url.is_active,
+            Url.created_at,
+            Url.updated_at,
+        ).where(Url.user_id == body["user_id"])
     else:
-        query = Url.select()
+        query = Url.select(
+            Url.id,
+            Url.user,
+            Url.short_code,
+            Url.original_url,
+            Url.title,
+            Url.is_active,
+            Url.created_at,
+            Url.updated_at,
+        )
 
     if "id" in request.args:
         query = query.where(Url.id == request.args.get("id", type=int))
@@ -124,7 +142,23 @@ def list_urls():
     current_app.logger.info(f"Listed {len(urls)} URL records")
 
     return jsonify(
-        {"kind": "list", "sample": [format_url(u) for u in urls], "total_items": total}
+        {
+            "kind": "list",
+            "sample": [
+                {
+                    "id": u.id,
+                    "user_id": u.user_id,
+                    "short_code": u.short_code,
+                    "original_url": u.original_url,
+                    "title": u.title,
+                    "is_active": u.is_active,
+                    "created_at": u.created_at.isoformat(),
+                    "updated_at": u.updated_at.isoformat(),
+                }
+                for u in urls
+            ],
+            "total_items": total,
+        }
     )
 
 

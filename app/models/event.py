@@ -17,7 +17,7 @@ class Event(BaseModel):
 
     class Meta:
         indexes = (
-            (("url",), False),
-            (("user",), False),
-            (("event_type",), False),
+            (("url", "user"), False),
+            (("user", "event_type"), False),
+            (("user", "timestamp"), False),
         )
