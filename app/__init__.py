@@ -9,10 +9,20 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 
+import psutil
+
 from app.database import init_db
 from app.log_store import log_records
 from app.metrics_store import record_request_end, record_request_start
 from app.routes import register_routes
+from app.routes.prometheus import (
+    CPU_USAGE,
+    ERROR_COUNT,
+    MEMORY_USAGE_MB,
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+    REQUESTS_IN_PROGRESS,
+)
 
 
 class JsonFormatter(logging.Formatter):
@@ -102,12 +112,27 @@ def create_app():
     def log_request():
         request._start_time = time.time()
         record_request_start()
+        REQUESTS_IN_PROGRESS.inc()
         app.logger.info("Request received")
 
     @app.after_request
     def track_metrics(response):
-        latency_ms = (time.time() - getattr(request, "_start_time", time.time())) * 1000
+        latency_s = time.time() - getattr(request, "_start_time", time.time())
+        latency_ms = latency_s * 1000
         record_request_end(request.method, request.path, response.status_code, latency_ms)
+
+        endpoint = request.path
+        REQUEST_COUNT.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
+        REQUEST_LATENCY.labels(method=request.method, endpoint=endpoint).observe(latency_s)
+        REQUESTS_IN_PROGRESS.dec()
+
+        if response.status_code >= 400:
+            ERROR_COUNT.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
+
+        process = psutil.Process(os.getpid())
+        CPU_USAGE.set(psutil.cpu_percent(interval=None))
+        MEMORY_USAGE_MB.set(round(process.memory_info().rss / 1024 / 1024, 1))
+
         return response
 
     @app.route("/health")
