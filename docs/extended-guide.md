@@ -59,3 +59,10 @@ On M1 air, we peak at almost 600 req/s with 1.7s p95 latency with 3,000 users, a
   }
 }
 ```
+
+## Decision Log
+
+- **Redis**: The standard for caching. Used as L2 cache between the various instances to prevent unnecessary database calls. The L1 cache is in-memory dictionary to prevent latency due to the network communication with Redis. Used LRU for the eviction policy.
+- **Nginx**: The standard for a web server. Can handle lots of requests and won't bottle this application.
+- **Docker Compose**: Docker is the standard for containerization. Compose provides instancing and restarts from the beginning, and allows easy setup of external dependencies like PostgreSQL and Redis
+- **Locust**: Same as the app language, making it easier to work with. 
