@@ -66,3 +66,33 @@ On M1 air, we peak at almost 600 req/s with 1.7s p95 latency with 3,000 users, a
 - **Nginx**: The standard for a web server. Can handle lots of requests and won't bottle this application.
 - **Docker Compose**: Docker is the standard for containerization. Compose provides instancing and restarts from the beginning, and allows easy setup of external dependencies like PostgreSQL and Redis
 - **Locust**: Same as the app language, making it easier to work with. 
+
+## Architecture
+
+```
+                         ┌─────────────┐
+                         │    User     │
+                         └──────┬──────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    app-network                              │
+│  ┌─────────┐      ┌───────────┐      ┌─────────────────┐    │
+│  │  nginx  │─────▶│   app     │─────▶│   postgres     │    │
+│  │ :80     │      │ (6 pods)  │      │   :5432        │    │
+│  └─────────┘      └───────────┘      └─────────────────┘    │
+│                         │                   ▲              │
+│                         │                   │              │
+│                         ▼                   │              │
+│                    ┌───────────┐            │              │
+│                    │   redis   │────────────┘              │
+│                    │  :6379    │                           │
+│                    └───────────┘                           │
+└─────────────────────────────────────────────────────────────┘
+
+Legend:
+  nginx  → Load balancer/reverse proxy
+  app    → Flask application (6 replicas)
+  redis  → Cache layer
+  postgres → Database
+```

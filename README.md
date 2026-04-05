@@ -1,14 +1,15 @@
 # MLH PE Hackathon — Flask + Peewee + PostgreSQL Template
 
-[New info here](/docs/extended-guide.md)
-
-A minimal hackathon starter template. You get the scaffolding and database wiring — you build the models, routes, and CSV loading logic.
-
 **Stack:** Flask · Peewee ORM · PostgreSQL · uv
 
-## **Important**
+## Docs map
 
-You need to work with around the seed files that you can find in [MLH PE Hackathon](https://mlh-pe-hackathon.com) platform. This will help you build the schema for the database and have some data to do some testing and submit your project for judging. If you need help with this, reach out on Discord or on the Q&A tab on the platform.
+- `docs/API.md` — endpoint behavior, request/response examples, and evaluation notes.
+- `docs/runbook.md` — operational checks, common failures, and incident escalation flow.
+- `docs/failure-manual.md` — postmortem template for documenting incidents.
+- `docs/performance-bottleneck-report.md` — performance test template and bottleneck tracking.
+- `docs/extended-guide.md` — extended project notes (profiles, testing, and workflow quick refs).
+
 
 ## Prerequisites
 
@@ -270,14 +271,6 @@ query = (Product
   - Make sure the app is still running in the terminal where you started `uv run run.py`.
   - Double-check you are visiting `http://localhost:5000/health`.
   - If port `5000` is already used by another app, stop that process and re-run.
-
-## Docs map
-
-- `docs/API.md` — endpoint behavior, request/response examples, and evaluation notes.
-- `docs/runbook.md` — operational checks, common failures, and incident escalation flow.
-- `docs/failure-manual.md` — postmortem template for documenting incidents.
-- `docs/performance-bottleneck-report.md` — performance test template and bottleneck tracking.
-- `docs/extended-guide.md` — extended project notes (profiles, testing, and workflow quick refs).
 
 ## Create a pull request (after pushing your branch)
 
