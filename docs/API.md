@@ -1,9 +1,5 @@
 # API Specs
 
-Once you send your submission for evaluation, you can have your app tested against some tests we developed to ensure your application complies with the features of a basic URL shortener. This doesn't replace the tests you might come up with your team, but can help you work towards the reliability quest!
-
-**PS:** There are some tests that have their input/output hidden for you. We can't tell you as that would be too easy, but if your app handles edge cases, you might pass them! We will share hints as the hackathon goes on.
-
 ---
 
 ## Test Endpoints
@@ -32,22 +28,15 @@ Ensure your API is running and ready to accept requests.
 - **Endpoint:** `POST /users/bulk`
 - **Input Payload:** `multipart/form-data` with a `file` field containing `users.csv`
 - **Expected Response:** `200 OK` or `201 Created`
-- **Response Format:** Must indicate the number of imported users. Acceptable formats include:
-
-  ```json
-  { "count": 2 }
-  ```
-
+- **Response Format:** 
   ```json
   { "imported": 2 }
   ```
 
-  Or simply returning an array of imported objects.
-
 #### List Users
 
 - **Endpoint:** `GET /users`
-- **Input Payload:** None (Query parameters `?page=x&per_page=y` should optionally paginate results)
+- **Input Payload:** None (Query parameters `?page=x&per_page=y`can optionally paginate results)
 - **Expected Response:** `200 OK`
 - **Response Format:** A JSON array of users (or a paginated envelope like `{"users": [...]}`)
 
@@ -97,7 +86,7 @@ Ensure your API is running and ready to accept requests.
   ```
 
 - **Expected Response:** `201 Created`
-- **Response Format:** The created user object. The endpoint must reject invalid data schemas (e.g., integer for username) and return `400 Bad Request` or `422 Unprocessable Entity` containing an error dictionary.
+- **Response Format:** The created user object. 
 
   ```json
   {
@@ -149,7 +138,7 @@ Ensure your API is running and ready to accept requests.
   ```
 
 - **Expected Response:** `201 Created`
-- **Response Format:** URL object containing the generated `short_code`. Should handle missing user gracefully and throw errors for invalid constraints.
+- **Response Format:** URL object containing the generated `short_code`.
 
   ```json
   {
